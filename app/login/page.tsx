@@ -2,25 +2,71 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useCSRF } from '@/lib/csrf';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { fetchWithToken } = useCSRF();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Cargar token CSRF al montar el componente
+  useEffect(() => {
+    const initializeCSRF = async () => {
+      try {
+        // Intentar obtener un token CSRF
+        const token = await fetch('/api/csrf-token', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+        
+        if (!token.ok) {
+          console.warn('No se pudo obtener token CSRF, continuando sin protección');
+        }
+      } catch (error) {
+        console.warn('Error al inicializar CSRF:', error);
+      }
+    };
+
+    initializeCSRF();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Simulate API call
     try {
-      // TODO: Replace with actual login API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Login attempt:', { email, password: '[REDACTED]' });
+      // Enviar solicitud con protección CSRF
+      const response = await fetchWithToken('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error en el inicio de sesión');
+      }
+
+      const data = await response.json();
+      console.log('Login exitoso:', data);
+      
+      // Redirigir al dashboard o página principal
+      window.location.href = '/dashboard';
+      
     } catch (error) {
       console.error('Login error:', error);
+      setError(error.message || 'Error en el inicio de sesión');
     } finally {
       setIsLoading(false);
     }
@@ -117,6 +163,13 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
           {/* Submit Button */}
           <div>
             <button
@@ -130,7 +183,7 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Cargando...
+                  Iniciando sesión...
                 </span>
               ) : (
                 'Entrar'
