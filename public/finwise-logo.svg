@@ -1,0 +1,19 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FinWise Logo">
+  <title>FinWise Logo</title>
+  <desc>Logo de FinWise con círculo y patrón de ondas</desc>
+  
+  <!-- Circle background -->
+  <circle cx="32" cy="32" r="30" fill="url(#paint0_linear)" stroke="#ffffff" stroke-width="1.5" opacity="0.6"></circle>
+  
+  <!-- Wave pattern inside circle -->
+  <path d="M12 32C18 26 26 26 32 32C38 38 46 38 52 32" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path d="M12 40C18 34 26 34 32 40C38 46 46 46 52 40" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"></path>
+  <path d="M12 24C18 18 26 18 32 24C38 30 46 30 52 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"></path>
+  
+  <defs>
+    <linearGradient id="paint0_linear" x1="0" y1="0" x2="64" y2="64">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+</svg>
