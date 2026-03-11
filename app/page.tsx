@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -28,12 +29,12 @@ export default function Home() {
 
         {/* CTA Buttons */}
         <div className="mt-8 space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
-          <button className="btn-primary w-full sm:w-auto">
+          <Link href="/signup" className="btn-primary w-full sm:w-auto">
             Registrarse
-          </button>
-          <button className="btn-secondary w-full sm:w-auto">
+          </Link>
+          <Link href="/login" className="btn-secondary w-full sm:w-auto">
             Iniciar sesión
-          </button>
+          </Link>
         </div>
 
         {/* Footer Text */}
