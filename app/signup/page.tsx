@@ -3,22 +3,39 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
+import { usePasswordValidation } from '@/hooks/usePasswordValidation';
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    password,
+    confirmPassword,
+    setPassword,
+    setConfirmPassword,
+    passwordValidation,
+    isConfirmPasswordValid,
+    hasPasswordError,
+    hasConfirmPasswordError,
+  } = usePasswordValidation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Basic validation
-    if (password !== confirmPassword) {
+    // Enhanced validation
+    if (!passwordValidation.isValid) {
+      alert('Por favor, asegúrate de que tu contraseña cumpla con todos los requisitos de seguridad');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isConfirmPasswordValid) {
       alert('Las contraseñas no coinciden');
       setIsLoading(false);
       return;
@@ -116,7 +133,9 @@ export default function SignupPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 pr-12 border border-white/20 placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out"
+                className={`appearance-none relative block w-full px-4 py-3 pr-12 border ${
+                  hasPasswordError ? 'border-red-400/50' : 'border-white/20'
+                } placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out`}
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -132,6 +151,13 @@ export default function SignupPage() {
               </button>
             </div>
 
+            {/* Password Strength Indicator */}
+            {password.length > 0 && (
+              <div className="mt-2">
+                <PasswordStrengthIndicator validation={passwordValidation} />
+              </div>
+            )}
+
             {/* Confirm Password Input */}
             <div className="relative">
               <label htmlFor="confirmPassword" className="sr-only">
@@ -143,7 +169,9 @@ export default function SignupPage() {
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 pr-12 border border-white/20 placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out"
+                className={`appearance-none relative block w-full px-4 py-3 pr-12 border ${
+                  hasConfirmPasswordError ? 'border-red-400/50' : 'border-white/20'
+                } placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out`}
                 placeholder="Confirmar contraseña"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -158,6 +186,11 @@ export default function SignupPage() {
                 </span>
               </button>
             </div>
+
+            {/* Confirm Password Error Message */}
+            {hasConfirmPasswordError && (
+              <p className="text-red-300 text-sm mt-1">Las contraseñas no coinciden</p>
+            )}
           </div>
 
           {/* Submit Button */}
