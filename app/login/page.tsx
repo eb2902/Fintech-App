@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       // TODO: Replace with actual login API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Login attempt:', { email, password });
+      console.log('Login attempt:', { email, password: '[REDACTED]' });
     } catch (error) {
       console.error('Login error:', error);
     } finally {
