@@ -171,11 +171,11 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 /**
  * Protege una ruta específica contra CSRF
  */
-export function protectRoute(handler: (req: NextRequest, context: { params: Promise<{}> }) => Promise<Response> | Response) {
-  return async (req: NextRequest, context: { params: Promise<{}> }) => {
+export function protectRoute(handler: (req: NextRequest) => Promise<Response> | Response) {
+  return async (req: NextRequest) => {
     // Solo proteger métodos POST, PUT, DELETE, PATCH
     if (!['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method || '')) {
-      return handler(req, context);
+      return handler(req);
     }
 
     const cookieHeader = req.headers.get('cookie') || '';
@@ -199,6 +199,6 @@ export function protectRoute(handler: (req: NextRequest, context: { params: Prom
       );
     }
 
-    return handler(req, context);
+    return handler(req);
   };
 }

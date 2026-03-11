@@ -3,7 +3,7 @@ import { protectRoute } from '@/middleware/csrf';
 import { randomUUID } from 'crypto';
 
 // Proteger esta ruta contra CSRF
-export const POST = protectRoute(async (request: NextRequest, context: { params: Promise<{}> }) => {
+export const POST = protectRoute(async (request: NextRequest) => {
   try {
     const body = await request.json();
     const { fullName, email, password, confirmPassword } = body;

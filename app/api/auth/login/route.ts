@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { protectRoute } from '@/middleware/csrf';
 
 // Proteger esta ruta contra CSRF
-export const POST = protectRoute(async (request: NextRequest, context: { params: Promise<{}> }) => {
+export const POST = protectRoute(async (request: NextRequest) => {
   try {
     const body = await request.json();
     const { email, password } = body;
