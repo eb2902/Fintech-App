@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import { usePasswordValidation } from '@/hooks/usePasswordValidation';
+import { useCSRF } from '@/lib/csrf';
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('');
@@ -12,6 +13,9 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { fetchWithToken } = useCSRF();
 
   const {
     password,
@@ -24,30 +28,49 @@ export default function SignupPage() {
     hasConfirmPasswordError,
   } = usePasswordValidation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
     // Enhanced validation
     if (!passwordValidation.isValid) {
-      alert('Por favor, asegúrate de que tu contraseña cumpla con todos los requisitos de seguridad');
+      setError('Por favor, asegúrate de que tu contraseña cumpla con todos los requisitos de seguridad');
       setIsLoading(false);
       return;
     }
 
     if (!isConfirmPasswordValid) {
-      alert('Las contraseñas no coinciden');
+      setError('Las contraseñas no coinciden');
       setIsLoading(false);
       return;
     }
 
-    // Simulate API call
     try {
-      // TODO: Replace with actual signup API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Signup attempt:', { fullName, email, password });
+      // Enviar solicitud con protección CSRF
+      const response = await fetchWithToken('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({
+          fullName,
+          email,
+          password,
+          confirmPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error en el registro');
+      }
+
+      const data = await response.json();
+      console.log('Signup exitoso:', data);
+      
+      // Redirigir al dashboard o página de bienvenida
+      window.location.href = '/welcome';
+      
     } catch (error) {
       console.error('Signup error:', error);
+      setError(error.message || 'Error en el registro');
     } finally {
       setIsLoading(false);
     }
@@ -190,6 +213,13 @@ export default function SignupPage() {
             {/* Confirm Password Error Message */}
             {hasConfirmPasswordError && (
               <p className="text-red-300 text-sm mt-1">Las contraseñas no coinciden</p>
+            )}
+            
+            {/* General Error Message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg">
+                <p className="text-sm">{error}</p>
+              </div>
             )}
           </div>
 
