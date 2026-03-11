@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { protectRoute } from '@/middleware/csrf';
+import { randomUUID } from 'crypto';
 
 // Proteger esta ruta contra CSRF
 export const POST = protectRoute(async (request: NextRequest) => {
@@ -83,7 +84,7 @@ export const POST = protectRoute(async (request: NextRequest) => {
     
     // Simulación de registro exitoso
     const newUser = {
-      id: 'user-' + Math.random().toString(36).substr(2, 9),
+      id: 'user-' + randomUUID(),
       email: email,
       name: fullName.trim(),
       role: 'user',
