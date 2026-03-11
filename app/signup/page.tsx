@@ -70,7 +70,13 @@ export default function SignupPage() {
       
     } catch (error) {
       console.error('Signup error:', error);
-      setError(error.message || 'Error en el registro');
+      // Manejar el error de manera segura
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : 'Error en el registro';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

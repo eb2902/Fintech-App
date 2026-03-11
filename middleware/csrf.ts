@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
 
 export interface CSRFToken {
   token: string;
@@ -8,7 +9,7 @@ export interface CSRFToken {
 export class CSRFManager {
   private secret: string;
   private tokenExpiry: number;
-  private cookieName: string;
+  public cookieName: string;
 
   constructor() {
     this.secret = process.env.CSRF_SECRET || crypto.randomBytes(64).toString('hex');
@@ -170,11 +171,11 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 /**
  * Protege una ruta específica contra CSRF
  */
-export function protectRoute(handler: (req: NextRequest, res: NextResponse, ...args: unknown[]) => Promise<Response> | Response) {
-  return async (req: NextRequest, res: NextResponse, ...args: unknown[]) => {
+export function protectRoute(handler: (req: NextRequest) => Promise<Response> | Response) {
+  return async (req: NextRequest) => {
     // Solo proteger métodos POST, PUT, DELETE, PATCH
     if (!['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method || '')) {
-      return handler(req, res, ...args);
+      return handler(req);
     }
 
     const cookieHeader = req.headers.get('cookie') || '';
@@ -183,7 +184,7 @@ export function protectRoute(handler: (req: NextRequest, res: NextResponse, ...a
     
     const cookieToken = csrfCookie ? csrfManager.verifyCookie(csrfCookie) : null;
     const submittedToken = req.headers.get('x-csrf-token') || 
-                          (req.body && (req.body as { _csrf?: string })._csrf);
+                          (req.body && (req.body as { _csrf?: string })._csrf) || '';
 
     if (!csrfManager.validateToken(cookieToken, submittedToken)) {
       return new Response(
@@ -198,6 +199,6 @@ export function protectRoute(handler: (req: NextRequest, res: NextResponse, ...a
       );
     }
 
-    return handler(req, res, ...args);
+    return handler(req);
   };
 }

@@ -66,7 +66,13 @@ export default function LoginPage() {
       
     } catch (error) {
       console.error('Login error:', error);
-      setError(error.message || 'Error en el inicio de sesión');
+      // Manejar el error de manera segura
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : 'Error en el inicio de sesión';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
