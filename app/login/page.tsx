@@ -3,16 +3,49 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useFormValidation, emailValidation, sanitizeInput, validateXSS } from '@/hooks/useFormValidation';
 import { useCSRF } from '@/lib/csrf';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const { fetchWithToken } = useCSRF();
+
+  // Validación del formulario
+  const formValidation = useFormValidation({
+    initialValues: {
+      email: '',
+      password: '',
+    },
+    validationRules: {
+      email: emailValidation,
+      password: {
+        required: true,
+        minLength: 1,
+        custom: (value: string) => {
+          if (!value || value.trim().length === 0) {
+            return 'La contraseña es requerida';
+          }
+          
+          // Validación básica de seguridad
+          if (value.length < 6) {
+            return 'La contraseña debe tener al menos 6 caracteres';
+          }
+          
+          // Validación contra XSS
+          if (!validateXSS(value)) {
+            return 'Formato de contraseña inválido';
+          }
+          
+          return null;
+        },
+      },
+    },
+    validateOnChange: true,
+    validateOnBlur: true,
+  });
 
   // Cargar token CSRF al montar el componente
   useEffect(() => {
@@ -43,13 +76,34 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     
+    // Validar todos los campos antes de enviar
+    const emailField = formValidation.fields.email;
+    const passwordField = formValidation.fields.password;
+    
+    if (!emailField.isValid || !passwordField.isValid) {
+      setError('Por favor, corrige los errores en el formulario');
+      setIsLoading(false);
+      return;
+    }
+    
+    // Sanitizar entradas
+    const sanitizedEmail = sanitizeInput(emailField.value);
+    const sanitizedPassword = sanitizeInput(passwordField.value);
+    
+    // Validación adicional de seguridad
+    if (!validateXSS(sanitizedEmail) || !validateXSS(sanitizedPassword)) {
+      setError('Datos de entrada no válidos');
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       // Enviar solicitud con protección CSRF
       const response = await fetchWithToken('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({
-          email,
-          password,
+          email: sanitizedEmail,
+          password: sanitizedPassword,
         }),
       });
 
@@ -112,6 +166,7 @@ export default function LoginPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             {/* Email Input */}
+            {/* Email Input */}
             <div>
               <label htmlFor="email" className="sr-only">
                 Correo electrónico
@@ -122,10 +177,17 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-white/30 placeholder-white/70 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out"
+                className={`appearance-none relative block w-full px-4 py-3 border rounded-full bg-white/10 focus:outline-none focus:ring-2 transition-all duration-300 ease-in-out ${
+                  formValidation.fields.email.error && formValidation.fields.email.isTouched
+                    ? 'border-red-400/50 focus:ring-red-400/50 focus:border-red-400/80 text-red-200 placeholder-red-200/60'
+                    : formValidation.fields.email.isValid && formValidation.fields.email.isDirty && formValidation.fields.email.isTouched
+                    ? 'border-green-400/50 focus:ring-green-400/50 focus:border-green-400/80 text-green-200 placeholder-green-200/60'
+                    : 'border-white/30 focus:ring-white/50 focus:border-white/80 text-white placeholder-white/70'
+                }`}
                 placeholder="Correo electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formValidation.fields.email.value}
+                onChange={(e) => formValidation.updateField('email', e.target.value)}
+                onBlur={() => formValidation.updateFieldBlur('email', formValidation.fields.email.value)}
               />
             </div>
 
@@ -140,10 +202,17 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 pr-12 border border-white/30 placeholder-white/70 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out"
+                className={`appearance-none relative block w-full px-4 py-3 pr-12 border rounded-full bg-white/10 focus:outline-none focus:ring-2 transition-all duration-300 ease-in-out ${
+                  formValidation.fields.password.error && formValidation.fields.password.isTouched
+                    ? 'border-red-400/50 focus:ring-red-400/50 focus:border-red-400/80 text-red-200 placeholder-red-200/60'
+                    : formValidation.fields.password.isValid && formValidation.fields.password.isDirty && formValidation.fields.password.isTouched
+                    ? 'border-green-400/50 focus:ring-green-400/50 focus:border-green-400/80 text-green-200 placeholder-green-200/60'
+                    : 'border-white/30 focus:ring-white/50 focus:border-white/80 text-white placeholder-white/70'
+                }`}
                 placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formValidation.fields.password.value}
+                onChange={(e) => formValidation.updateField('password', e.target.value)}
+                onBlur={() => formValidation.updateFieldBlur('password', formValidation.fields.password.value)}
               />
               <button
                 type="button"
@@ -154,6 +223,22 @@ export default function LoginPage() {
                   {showPassword ? 'Ocultar' : 'Mostrar'}
                 </span>
               </button>
+            </div>
+
+            {/* Mensajes de validación */}
+            <div className="space-y-2">
+              {formValidation.fields.email.isTouched && formValidation.fields.email.error && (
+                <p className="text-red-300 text-sm flex items-center space-x-2">
+                  <span>•</span>
+                  <span>{formValidation.fields.email.error}</span>
+                </p>
+              )}
+              {formValidation.fields.password.isTouched && formValidation.fields.password.error && (
+                <p className="text-red-300 text-sm flex items-center space-x-2">
+                  <span>•</span>
+                  <span>{formValidation.fields.password.error}</span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -180,8 +265,12 @@ export default function LoginPage() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-semibold rounded-full text-slate-900 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              disabled={isLoading || !formValidation.isValid}
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-semibold rounded-full shadow-lg transform hover:-translate-y-1 transition-all duration-300 ease-in-out ${
+                isLoading || !formValidation.isValid
+                  ? 'opacity-50 cursor-not-allowed transform-none text-slate-900 bg-white'
+                  : 'text-slate-900 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 hover:shadow-xl'
+              }`}
             >
               {isLoading ? (
                 <span className="flex items-center">
