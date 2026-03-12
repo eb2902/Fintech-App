@@ -6,6 +6,8 @@ import { useState } from 'react';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
 import { useFormValidation, fullNameValidation, emailValidation, passwordValidation, sanitizeInput, validateXSS } from '@/hooks/useFormValidation';
 import { useCSRF } from '@/lib/csrf';
+import { useAttackPrevention, PREVENTION_CONFIGS } from '@/hooks/useAttackPrevention';
+import AttackWarning from '@/components/AttackWarning';
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +16,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   
   const { fetchWithToken } = useCSRF();
+  const attackPrevention = useAttackPrevention(PREVENTION_CONFIGS.signup);
 
   // Validación del formulario
   const formValidation = useFormValidation({
@@ -98,6 +101,14 @@ export default function SignupPage() {
     setIsLoading(true);
     setError(null);
     
+    // Verificar si el formulario está bloqueado por prevención de ataques
+    const currentState = attackPrevention.getCurrentState();
+    if (attackPrevention.shouldDisableForm(currentState)) {
+      setError('Formulario temporalmente deshabilitado por seguridad. Por favor, inténtalo más tarde.');
+      setIsLoading(false);
+      return;
+    }
+    
     // Validar todos los campos antes de enviar
     const fullNameField = formValidation.fields.fullName;
     const emailField = formValidation.fields.email;
@@ -145,17 +156,27 @@ export default function SignupPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Incrementar intentos fallidos
+        attackPrevention.incrementAttempts();
+        
         throw new Error(errorData.error || 'Error en el registro');
       }
 
       const data = await response.json();
       console.log('Signup exitoso:', data);
       
+      // Resetear intentos fallidos en caso de éxito
+      attackPrevention.resetAttempts();
+      
       // Redirigir al dashboard o página de bienvenida
       window.location.href = '/welcome';
       
     } catch (error) {
       console.error('Signup error:', error);
+      // Incrementar intentos fallidos para cualquier error
+      attackPrevention.incrementAttempts();
+      
       // Manejar el error de manera segura
       const errorMessage = error instanceof Error 
         ? error.message 
@@ -354,6 +375,15 @@ export default function SignupPage() {
               )}
             </div>
             
+            {/* Attack Warning */}
+            <AttackWarning 
+              preventionState={attackPrevention.getCurrentState()}
+              onRetry={() => {
+                // Forzar actualización del estado
+                attackPrevention.getCurrentState();
+              }}
+            />
+
             {/* General Error Message */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg">
@@ -366,9 +396,9 @@ export default function SignupPage() {
           <div>
             <button
               type="submit"
-              disabled={isLoading || !formValidation.isValid}
+              disabled={isLoading || !formValidation.isValid || attackPrevention.shouldDisableForm(attackPrevention.getCurrentState())}
               className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-semibold rounded-full shadow-lg transform hover:-translate-y-1 transition-all duration-300 ease-in-out ${
-                isLoading || !formValidation.isValid
+                isLoading || !formValidation.isValid || attackPrevention.shouldDisableForm(attackPrevention.getCurrentState())
                   ? 'opacity-50 cursor-not-allowed transform-none text-black bg-white'
                   : 'text-black bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 hover:shadow-xl'
               }`}
