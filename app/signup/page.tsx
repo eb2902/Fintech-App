@@ -4,12 +4,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator';
-import { usePasswordValidation } from '@/hooks/usePasswordValidation';
+import { useFormValidation, fullNameValidation, emailValidation, passwordValidation, sanitizeInput, validateXSS } from '@/hooks/useFormValidation';
 import { useCSRF } from '@/lib/csrf';
 
 export default function SignupPage() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,43 +15,131 @@ export default function SignupPage() {
   
   const { fetchWithToken } = useCSRF();
 
-  const {
-    password,
-    confirmPassword,
-    setPassword,
-    setConfirmPassword,
-    passwordValidation,
-    isConfirmPasswordValid,
-    hasPasswordError,
-    hasConfirmPasswordError,
-  } = usePasswordValidation();
+  // Validación del formulario
+  const formValidation = useFormValidation({
+    initialValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+    validationRules: {
+      fullName: fullNameValidation,
+      email: emailValidation,
+      password: passwordValidation,
+      confirmPassword: {
+        required: true,
+        custom: (value: string) => {
+          const passwordValue = formValidation.fields.password.value;
+          if (!value) return 'Confirma tu contraseña';
+          if (value !== passwordValue) {
+            return 'Las contraseñas no coinciden';
+          }
+          return null;
+        },
+      },
+    },
+    validateOnChange: true,
+    validateOnBlur: true,
+  });
+
+  // Obtener validación de contraseña para el indicador
+  const getPasswordValidation = () => {
+    const passwordValue = formValidation.fields.password.value;
+    const requirements = {
+      length: passwordValue.length >= 8,
+      uppercase: /[A-Z]/.test(passwordValue),
+      lowercase: /[a-z]/.test(passwordValue),
+      number: /[0-9]/.test(passwordValue),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(passwordValue),
+    };
+
+    const errors: string[] = [];
+    
+    if (!requirements.length) {
+      errors.push('Mínimo 8 caracteres');
+    }
+    if (!requirements.uppercase) {
+      errors.push('Al menos una letra mayúscula');
+    }
+    if (!requirements.lowercase) {
+      errors.push('Al menos una letra minúscula');
+    }
+    if (!requirements.number) {
+      errors.push('Al menos un número');
+    }
+    if (!requirements.special) {
+      errors.push('Al menos un carácter especial (!@#$%^&*)');
+    }
+
+    const passedRequirements = Object.values(requirements).filter(Boolean).length;
+    let strength: 'weak' | 'medium' | 'strong' = 'weak';
+    
+    if (passedRequirements >= 4) {
+      strength = 'strong';
+    } else if (passedRequirements >= 3) {
+      strength = 'medium';
+    }
+
+    const isValid = passedRequirements === 5;
+
+    return {
+      isValid,
+      strength,
+      requirements,
+      errors,
+    };
+  };
+
+  const passwordValidationData = getPasswordValidation();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Enhanced validation
-    if (!passwordValidation.isValid) {
+    // Validar todos los campos antes de enviar
+    const fullNameField = formValidation.fields.fullName;
+    const emailField = formValidation.fields.email;
+    const passwordField = formValidation.fields.password;
+    const confirmPasswordField = formValidation.fields.confirmPassword;
+    
+    if (!fullNameField.isValid || !emailField.isValid || !passwordField.isValid || !confirmPasswordField.isValid) {
+      setError('Por favor, corrige los errores en el formulario');
+      setIsLoading(false);
+      return;
+    }
+    
+    // Validar contraseña segura
+    if (!passwordValidationData.isValid) {
       setError('Por favor, asegúrate de que tu contraseña cumpla con todos los requisitos de seguridad');
       setIsLoading(false);
       return;
     }
 
-    if (!isConfirmPasswordValid) {
-      setError('Las contraseñas no coinciden');
+    // Sanitizar entradas
+    const sanitizedFullName = sanitizeInput(fullNameField.value);
+    const sanitizedEmail = sanitizeInput(emailField.value);
+    const sanitizedPassword = sanitizeInput(passwordField.value);
+    const sanitizedConfirmPassword = sanitizeInput(confirmPasswordField.value);
+    
+    // Validación adicional de seguridad
+    if (!validateXSS(sanitizedFullName) || !validateXSS(sanitizedEmail) || 
+        !validateXSS(sanitizedPassword) || !validateXSS(sanitizedConfirmPassword)) {
+      setError('Datos de entrada no válidos');
       setIsLoading(false);
       return;
     }
-
+    
     try {
       // Enviar solicitud con protección CSRF
       const response = await fetchWithToken('/api/auth/signup', {
         method: 'POST',
         body: JSON.stringify({
-          fullName,
-          email,
-          password,
-          confirmPassword,
+          fullName: sanitizedFullName,
+          email: sanitizedEmail,
+          password: sanitizedPassword,
+          confirmPassword: sanitizedConfirmPassword,
         }),
       });
 
@@ -126,10 +212,17 @@ export default function SignupPage() {
                 type="text"
                 autoComplete="name"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-white/20 placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out"
+                className={`appearance-none relative block w-full px-4 py-3 border rounded-full bg-white/10 focus:outline-none focus:ring-2 transition-all duration-300 ease-in-out ${
+                  formValidation.fields.fullName.error && formValidation.fields.fullName.isTouched
+                    ? 'border-red-400/50 focus:ring-red-400/50 focus:border-red-400/80 text-red-200 placeholder-red-200/60'
+                    : formValidation.fields.fullName.isValid && formValidation.fields.fullName.isDirty && formValidation.fields.fullName.isTouched
+                    ? 'border-green-400/50 focus:ring-green-400/50 focus:border-green-400/80 text-green-200 placeholder-green-200/60'
+                    : 'border-white/20 focus:ring-white/50 focus:border-white/80 text-white placeholder-white/60'
+                }`}
                 placeholder="Nombre completo"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                value={formValidation.fields.fullName.value}
+                onChange={(e) => formValidation.updateField('fullName', e.target.value)}
+                onBlur={() => formValidation.updateFieldBlur('fullName', formValidation.fields.fullName.value)}
               />
             </div>
 
@@ -144,10 +237,17 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-white/20 placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out"
+                className={`appearance-none relative block w-full px-4 py-3 border rounded-full bg-white/10 focus:outline-none focus:ring-2 transition-all duration-300 ease-in-out ${
+                  formValidation.fields.email.error && formValidation.fields.email.isTouched
+                    ? 'border-red-400/50 focus:ring-red-400/50 focus:border-red-400/80 text-red-200 placeholder-red-200/60'
+                    : formValidation.fields.email.isValid && formValidation.fields.email.isDirty && formValidation.fields.email.isTouched
+                    ? 'border-green-400/50 focus:ring-green-400/50 focus:border-green-400/80 text-green-200 placeholder-green-200/60'
+                    : 'border-white/20 focus:ring-white/50 focus:border-white/80 text-white placeholder-white/60'
+                }`}
                 placeholder="Correo electrónico"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formValidation.fields.email.value}
+                onChange={(e) => formValidation.updateField('email', e.target.value)}
+                onBlur={() => formValidation.updateFieldBlur('email', formValidation.fields.email.value)}
               />
             </div>
 
@@ -162,12 +262,17 @@ export default function SignupPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
-                className={`appearance-none relative block w-full px-4 py-3 pr-12 border ${
-                  hasPasswordError ? 'border-red-400/50' : 'border-white/20'
-                } placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out`}
+                className={`appearance-none relative block w-full px-4 py-3 pr-12 border rounded-full bg-white/10 focus:outline-none focus:ring-2 transition-all duration-300 ease-in-out ${
+                  formValidation.fields.password.error && formValidation.fields.password.isTouched
+                    ? 'border-red-400/50 focus:ring-red-400/50 focus:border-red-400/80 text-red-200 placeholder-red-200/60'
+                    : formValidation.fields.password.isValid && formValidation.fields.password.isDirty && formValidation.fields.password.isTouched
+                    ? 'border-green-400/50 focus:ring-green-400/50 focus:border-green-400/80 text-green-200 placeholder-green-200/60'
+                    : 'border-white/20 focus:ring-white/50 focus:border-white/80 text-white placeholder-white/60'
+                }`}
                 placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formValidation.fields.password.value}
+                onChange={(e) => formValidation.updateField('password', e.target.value)}
+                onBlur={() => formValidation.updateFieldBlur('password', formValidation.fields.password.value)}
               />
               <button
                 type="button"
@@ -181,9 +286,9 @@ export default function SignupPage() {
             </div>
 
             {/* Password Strength Indicator */}
-            {password.length > 0 && (
+            {formValidation.fields.password.value.length > 0 && (
               <div className="mt-2">
-                <PasswordStrengthIndicator validation={passwordValidation} />
+                <PasswordStrengthIndicator validation={passwordValidationData} />
               </div>
             )}
 
@@ -198,12 +303,17 @@ export default function SignupPage() {
                 type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
-                className={`appearance-none relative block w-full px-4 py-3 pr-12 border ${
-                  hasConfirmPasswordError ? 'border-red-400/50' : 'border-white/20'
-                } placeholder-white/60 text-white rounded-full bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/80 focus:shadow-lg transition-all duration-300 ease-in-out`}
+                className={`appearance-none relative block w-full px-4 py-3 pr-12 border rounded-full bg-white/10 focus:outline-none focus:ring-2 transition-all duration-300 ease-in-out ${
+                  formValidation.fields.confirmPassword.error && formValidation.fields.confirmPassword.isTouched
+                    ? 'border-red-400/50 focus:ring-red-400/50 focus:border-red-400/80 text-red-200 placeholder-red-200/60'
+                    : formValidation.fields.confirmPassword.isValid && formValidation.fields.confirmPassword.isDirty && formValidation.fields.confirmPassword.isTouched
+                    ? 'border-green-400/50 focus:ring-green-400/50 focus:border-green-400/80 text-green-200 placeholder-green-200/60'
+                    : 'border-white/20 focus:ring-white/50 focus:border-white/80 text-white placeholder-white/60'
+                }`}
                 placeholder="Confirmar contraseña"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                value={formValidation.fields.confirmPassword.value}
+                onChange={(e) => formValidation.updateField('confirmPassword', e.target.value)}
+                onBlur={() => formValidation.updateFieldBlur('confirmPassword', formValidation.fields.confirmPassword.value)}
               />
               <button
                 type="button"
@@ -216,10 +326,33 @@ export default function SignupPage() {
               </button>
             </div>
 
-            {/* Confirm Password Error Message */}
-            {hasConfirmPasswordError && (
-              <p className="text-red-300 text-sm mt-1">Las contraseñas no coinciden</p>
-            )}
+            {/* Mensajes de validación */}
+            <div className="space-y-2">
+              {formValidation.fields.fullName.isTouched && formValidation.fields.fullName.error && (
+                <p className="text-red-300 text-sm flex items-center space-x-2">
+                  <span>•</span>
+                  <span>{formValidation.fields.fullName.error}</span>
+                </p>
+              )}
+              {formValidation.fields.email.isTouched && formValidation.fields.email.error && (
+                <p className="text-red-300 text-sm flex items-center space-x-2">
+                  <span>•</span>
+                  <span>{formValidation.fields.email.error}</span>
+                </p>
+              )}
+              {formValidation.fields.password.isTouched && formValidation.fields.password.error && (
+                <p className="text-red-300 text-sm flex items-center space-x-2">
+                  <span>•</span>
+                  <span>{formValidation.fields.password.error}</span>
+                </p>
+              )}
+              {formValidation.fields.confirmPassword.isTouched && formValidation.fields.confirmPassword.error && (
+                <p className="text-red-300 text-sm flex items-center space-x-2">
+                  <span>•</span>
+                  <span>{formValidation.fields.confirmPassword.error}</span>
+                </p>
+              )}
+            </div>
             
             {/* General Error Message */}
             {error && (
@@ -233,8 +366,12 @@ export default function SignupPage() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-semibold rounded-full text-black bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              disabled={isLoading || !formValidation.isValid}
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-semibold rounded-full shadow-lg transform hover:-translate-y-1 transition-all duration-300 ease-in-out ${
+                isLoading || !formValidation.isValid
+                  ? 'opacity-50 cursor-not-allowed transform-none text-black bg-white'
+                  : 'text-black bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 hover:shadow-xl'
+              }`}
             >
               {isLoading ? (
                 <span className="flex items-center">
