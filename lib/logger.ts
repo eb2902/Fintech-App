@@ -73,9 +73,7 @@ class Logger {
     // Use cryptographically secure randomness when available
     let randomPart: string;
 
-    const globalCrypto: Crypto | undefined =
-      (typeof crypto !== 'undefined' ? crypto : undefined) ||
-      (typeof window !== 'undefined' && (window as any).crypto);
+    const globalCrypto = this.getGlobalCrypto();
 
     if (globalCrypto && typeof globalCrypto.getRandomValues === 'function') {
       const bytes = new Uint32Array(2);
@@ -89,6 +87,16 @@ class Logger {
     }
 
     return 'log_' + randomPart + '_' + Date.now();
+  }
+
+  private getGlobalCrypto(): Crypto | undefined {
+    if (typeof crypto !== 'undefined') {
+      return crypto;
+    }
+    if (typeof window !== 'undefined' && window.crypto) {
+      return window.crypto;
+    }
+    return undefined;
   }
 
   private createLogEntry(

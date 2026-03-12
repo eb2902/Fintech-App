@@ -93,7 +93,7 @@ export function useErrorCapture(options: ErrorCaptureOptions = {}) {
                 loadTime,
                 domContentLoaded,
                 url: window.location.href,
-                connection: (navigator as any).connection?.effectiveType || 'unknown'
+                connection: (navigator as Navigator & { connection?: { effectiveType?: string } })?.connection?.effectiveType || 'unknown'
               }
             );
           }
