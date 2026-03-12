@@ -70,7 +70,25 @@ class Logger {
   }
 
   private generateId(): string {
-    return 'log_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    // Use cryptographically secure randomness when available
+    let randomPart: string;
+
+    const globalCrypto: Crypto | undefined =
+      (typeof crypto !== 'undefined' ? crypto : undefined) ||
+      (typeof window !== 'undefined' && (window as any).crypto);
+
+    if (globalCrypto && typeof globalCrypto.getRandomValues === 'function') {
+      const bytes = new Uint32Array(2);
+      globalCrypto.getRandomValues(bytes);
+      // Convert to base36 to keep ID compact and similar to previous format
+      randomPart =
+        (bytes[0].toString(36) + bytes[1].toString(36)).substr(0, 9);
+    } else {
+      // Fallback for environments without crypto; not cryptographically secure
+      randomPart = Math.random().toString(36).substr(2, 9);
+    }
+
+    return 'log_' + randomPart + '_' + Date.now();
   }
 
   private createLogEntry(
