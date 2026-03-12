@@ -17,7 +17,7 @@ const SECURITY_HEADERS = {
 
 // Patrones de ataques comunes
 const ATTACK_PATTERNS = [
-  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, // XSS
+  /<\s*script\b/gi, // Detección de etiquetas <script> (XSS)
   /javascript:/gi, // JavaScript injection
   /on\w+\s*=/gi, // Event handlers
   /<iframe\b/gi, // Iframes
