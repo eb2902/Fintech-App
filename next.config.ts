@@ -10,8 +10,8 @@ const nextConfig: NextConfig = {
       {
         key: 'Content-Security-Policy',
         value: isDevelopment 
-          ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.vercel.com *.vercel-insights.com *.googleapis.com *.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.vercel.com *.vercel-insights.com *.googleapis.com *.gstatic.com; style-src 'self' 'unsafe-inline' *.googleapis.com; img-src 'self' data: *.vercel.com *.googleapis.com *.gstatic.com; font-src 'self' *.googleapis.com *.gstatic.com; connect-src 'self' *.vercel.com *.vercel-insights.com *.googleapis.com *.gstatic.com; frame-src 'self' *.vercel.com *.vercel-insights.com; object-src 'none'; base-uri 'self'; form-action 'self'"
-          : "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+          ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.vercel.com *.vercel-insights.com *.googleapis.com *.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.vercel.com *.vercel-insights.com *.googleapis.com *.gstatic.com; style-src 'self' 'unsafe-inline' *.googleapis.com; img-src 'self' data: *.vercel.com *.googleapis.com *.gstatic.com; font-src 'self' *.googleapis.com *.gstatic.com; connect-src 'self' *.vercel.com *.vercel-insights.com *.googleapis.com *.gstatic.com; frame-src 'self' *.vercel.com *.vercel-insights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+          : "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
       },
       
       // X-Frame-Options para prevenir clickjacking
