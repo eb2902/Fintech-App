@@ -28,8 +28,16 @@ export function useAttackPrevention(options: UseAttackPreventionOptions = {}) {
     storageKey = 'auth_attempts',
   } = options;
 
-  // Obtener estado actual del localStorage
+  // Verificar si estamos en un entorno del cliente con localStorage disponible
+  const isClient = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
+  // Obtener estado actual del localStorage (solo en cliente)
   const getStoredState = (): { attempts: number; lastAttempt: number; blockUntil: number | null } => {
+    // Si no estamos en el cliente, retornar estado predeterminado
+    if (!isClient) {
+      return { attempts: 0, lastAttempt: 0, blockUntil: null };
+    }
+
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
@@ -51,8 +59,13 @@ export function useAttackPrevention(options: UseAttackPreventionOptions = {}) {
     return { attempts: 0, lastAttempt: 0, blockUntil: null };
   };
 
-  // Guardar estado en localStorage
+  // Guardar estado en localStorage (solo en cliente)
   const saveState = (state: { attempts: number; lastAttempt: number; blockUntil: number | null }) => {
+    // Si no estamos en el cliente, no hacer nada
+    if (!isClient) {
+      return;
+    }
+
     try {
       localStorage.setItem(storageKey, JSON.stringify(state));
     } catch (error) {

@@ -159,3 +159,42 @@ export function appendCSRFToken(formData: FormData): FormData {
   }
   return formData;
 }
+
+// Exportar para uso en el backend también
+export { getCSRFToken as getCSRFTokenClient };
+
+/**
+ * Verifica el token CSRF en el backend (para rutas API)
+ */
+export async function verifyCSRFToken(request: Request): Promise<boolean> {
+  try {
+    // Obtener token del header
+    const tokenFromHeader = request.headers.get('X-CSRF-Token');
+    
+    if (!tokenFromHeader) {
+      return false;
+    }
+
+    // En una implementación real, aquí validarías el token contra:
+    // - El token almacenado en sesión
+    // - Un token firmado
+    // - Un token en base de datos
+    
+    // Por ahora, retornamos true para permitir el desarrollo
+    // En producción, implementa la lógica de validación real
+    return true;
+    
+  } catch (error) {
+    console.error('Error verificando token CSRF:', error);
+    return false;
+  }
+}
+
+/**
+ * Genera un nuevo token CSRF (para uso en el backend)
+ */
+export function generateCSRFToken(): string {
+  // En una implementación real, usarías una librería segura para generar tokens
+  // Por ahora, generamos un token simple para desarrollo
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
