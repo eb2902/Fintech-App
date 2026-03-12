@@ -9,14 +9,14 @@ export const POST = protectRoute(async (request: NextRequest) => {
     const session = validateSession(request);
     
     if (session) {
-      // Revocar la sesión actual
-      sessionManager.revokeSession(session.sessionId);
+      // Revocar todas las sesiones del usuario
+      sessionManager.revokeAllUserSessions(session.userId);
     }
 
     // Crear respuesta de logout
     const response = NextResponse.json({
       success: true,
-      message: 'Sesión cerrada exitosamente'
+      message: 'Todas las sesiones cerradas exitosamente'
     });
 
     // Eliminar cookie de sesión (configurar con fecha de expiración pasada)
@@ -25,7 +25,7 @@ export const POST = protectRoute(async (request: NextRequest) => {
     return response;
 
   } catch (error) {
-    console.error('Error en logout:', error);
+    console.error('Error en logout all:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',
