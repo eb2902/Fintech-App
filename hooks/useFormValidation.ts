@@ -293,7 +293,7 @@ export function sanitizeInput(input: string): string {
 // Validación contra XSS básica
 export function validateXSS(input: string): boolean {
   const xssPatterns = [
-    /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
+    /<\s*script\b/gi,
     /javascript:/gi,
     /on\w+\s*=/gi,
     /<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi,
