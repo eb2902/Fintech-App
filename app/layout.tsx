@@ -15,7 +15,6 @@ const poppins = Poppins({
   display: "swap",
 });
 
-
 export const metadata: Metadata = {
   title: "FinWise - Tus finanzas en un solo lugar",
   description: "Aplicación de finanzas personales para gestionar tus finanzas de manera inteligente",

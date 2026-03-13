@@ -36,9 +36,9 @@ export default function DashboardPage() {
 
       {/* Dashboard Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid-layout">
           {/* Welcome Card */}
-          <div className="md:col-span-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
+          <div className="glass-card">
             <h1 className="text-3xl font-bold text-white mb-2">
               Bienvenido, {session.name}
             </h1>
@@ -47,19 +47,19 @@ export default function DashboardPage() {
             </p>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 rounded-lg p-4">
-                <p className="text-white/60 text-sm">ID de Sesión</p>
-                <p className="text-white font-mono text-sm mt-1">{session.sessionId}</p>
+              <div className="session-stat">
+                <p className="session-stat-label">ID de Sesión</p>
+                <p className="session-stat-value">{session.sessionId}</p>
               </div>
-              <div className="bg-white/5 rounded-lg p-4">
-                <p className="text-white/60 text-sm">Correo</p>
-                <p className="text-white text-sm mt-1">{session.email}</p>
+              <div className="session-stat">
+                <p className="session-stat-label">Correo</p>
+                <p className="session-stat-value">{session.email}</p>
               </div>
             </div>
           </div>
 
           {/* Stats Card */}
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
+          <div className="glass-card">
             <h2 className="text-xl font-semibold text-white mb-4">Estadísticas</h2>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -85,25 +85,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
+        <div className="mt-8 grid-layout">
+          <div className="glass-card">
             <h3 className="text-white font-semibold mb-4">Acciones de Seguridad</h3>
             <div className="space-y-3">
               <button
                 onClick={() => window.location.href = '/profile'}
-                className="w-full px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors"
+                className="action-btn"
               >
                 Perfil de Usuario
               </button>
               <button
                 onClick={() => window.location.href = '/security'}
-                className="w-full px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 rounded-lg transition-colors"
+                className="action-btn-blue"
               >
                 Configuración de Seguridad
               </button>
               <button
                 onClick={logout}
-                className="w-full px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg transition-colors"
+                className="action-btn-red"
               >
                 Cerrar Sesión
               </button>
@@ -111,19 +111,19 @@ export default function DashboardPage() {
           </div>
 
           {/* Security Tips */}
-          <div className="md:col-span-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
+          <div className="glass-card">
             <h3 className="text-white font-semibold mb-4">Consejos de Seguridad</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="text-white/80">
+              <div className="security-tip">
                 <strong>•</strong> No compartas tu sesión con nadie
               </div>
-              <div className="text-white/80">
+              <div className="security-tip">
                 <strong>•</strong> Cierra sesión en dispositivos públicos
               </div>
-              <div className="text-white/80">
+              <div className="security-tip">
                 <strong>•</strong> Cambia tu contraseña regularmente
               </div>
-              <div className="text-white/80">
+              <div className="security-tip">
                 <strong>•</strong> Revisa tus sesiones activas periódicamente
               </div>
             </div>

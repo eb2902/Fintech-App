@@ -29,10 +29,10 @@ export default function Home() {
 
         {/* CTA Buttons */}
         <div className="mt-8 space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
-          <Link href="/signup" className="btn-primary w-full sm:w-auto">
+          <Link href="/signup" className="btn-primary">
             Registrarse
           </Link>
-          <Link href="/login" className="btn-secondary w-full sm:w-auto">
+          <Link href="/login" className="btn-secondary">
             Iniciar sesión
           </Link>
         </div>
@@ -44,10 +44,10 @@ export default function Home() {
       </div>
 
       {/* Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-40 right-10 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+      <div className="background-elements">
+        <div className="background-element bg-element-1"></div>
+        <div className="background-element bg-element-2"></div>
+        <div className="background-element bg-element-3"></div>
       </div>
     </div>
   );
