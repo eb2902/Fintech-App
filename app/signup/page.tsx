@@ -192,14 +192,14 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
       {/* Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-40 right-10 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+      <div className="background-elements">
+        <div className="background-element bg-element-1"></div>
+        <div className="background-element bg-element-2"></div>
+        <div className="background-element bg-element-3"></div>
       </div>
 
       {/* Glassmorphism Card */}
-      <div className="w-full max-w-md space-y-8 bg-white/10 backdrop-blur-[20px] border border-white/20 rounded-[32px] p-8 shadow-2xl min-h-[480px]">
+      <div className="w-full max-w-md space-y-8 glass-card min-h-[480px]">
         {/* Logo Section */}
         <div className="text-center">
           <div className="logo-container mx-auto">
