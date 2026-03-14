@@ -14,6 +14,7 @@ export default function Home() {
             width={96}
             height={96}
             className="mx-auto"
+            priority
           />
         </div>
 

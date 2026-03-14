@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
       // Permissions-Policy para controlar permisos de navegador
       {
         key: 'Permissions-Policy',
-        value: 'camera=(), microphone=(), geolocation=(), gyroscope=(), magnetometer=(), payment=(), usb=(), battery=(), accelerometer=(), autoplay=(), document-domain=(), encrypted-media=(), fullscreen=(), vibrate=(), display-capture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), web-share=(), xr-spatial-tracking=()'
+        value: 'camera=(), microphone=(), geolocation=(), gyroscope=(), magnetometer=(), payment=(), usb=(), accelerometer=(), autoplay=(), encrypted-media=(), fullscreen=(), display-capture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), web-share=(), xr-spatial-tracking=()'
       },
       
       // X-Permitted-Cross-Domain-Policies para controlar políticas de dominio cruzado

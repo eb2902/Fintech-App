@@ -209,6 +209,7 @@ export default function SignupPage() {
               width={80}
               height={80}
               className="mx-auto"
+              priority
             />
           </div>
           <h1 className="mt-6 text-3xl font-bold text-white tracking-tight">
