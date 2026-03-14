@@ -38,7 +38,7 @@ export default function Home() {
         </div>
 
         {/* Footer Text */}
-        <p className="mt-8 text-base text-white/80">
+        <p className="mt-8 text-base md:text-lg lg:text-xl text-white/90 font-medium">
           Comienza a gestionar tus finanzas de manera inteligente
         </p>
       </div>
