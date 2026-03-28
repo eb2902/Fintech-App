@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getProfile, refreshToken, logout, cleanupTokens } from '../controllers/authController.js';
+import { login, getProfile, refreshToken, logout, cleanupTokens } from '../controllers/authController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 import { 
   validateContentType, 
@@ -8,8 +8,8 @@ import {
   validateLogin 
 } from '../middleware/validationMiddleware.js';
 import rateLimit from 'express-rate-limit';
-
 const router = Router();
+
 const authLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 30, // limit each IP to 30 requests per windowMs on protected auth routes
