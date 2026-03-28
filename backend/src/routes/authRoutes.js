@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { login, getProfile, refreshToken, logout, cleanupTokens } from '../controllers/authController.js';
+import { login, getProfile, refreshToken, logout, cleanupTokens, register } from '../controllers/authController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 import { 
   validateContentType, 
   sanitizeInputs, 
-  validateRegister, 
-  validateLogin 
+  validateLogin,
+  validateRegister 
 } from '../middleware/validationMiddleware.js';
 import rateLimit from 'express-rate-limit';
 const router = Router();
@@ -28,6 +28,7 @@ router.get('/profile', authenticate, authLimiter, getProfile);
 router.post('/logout', authenticate, authLimiter, logout);
 router.post('/cleanup', authenticate, authLimiter, cleanupTokens);
 router.post('/login', sanitizeInputs, validateLogin, login);
+router.post('/register', sanitizeInputs, validateRegister, register);
 router.post('/refresh', refreshToken);
 
 // Rutas protegidas
