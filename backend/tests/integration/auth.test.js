@@ -9,6 +9,12 @@ const mockPrisma = {
     findUnique: jest.fn(),
     create: jest.fn(),
   },
+  refreshToken: {
+    create: jest.fn(),
+  },
+  blacklistedToken: {
+    findUnique: jest.fn(),
+  },
 };
 
 // Mock de database.js
@@ -44,6 +50,11 @@ describe('Auth Integration Tests', () => {
         email: userData.email,
         name: userData.name,
         createdAt: new Date(),
+      });
+      mockPrisma.refreshToken.create.mockResolvedValue({
+        id: '1',
+        token: 'mock.refresh.token',
+        userId: '123',
       });
 
       const response = await request(app)
@@ -141,6 +152,11 @@ describe('Auth Integration Tests', () => {
         name: 'Test User',
         createdAt: new Date(),
       });
+      mockPrisma.refreshToken.create.mockResolvedValue({
+        id: '1',
+        token: 'mock.refresh.token',
+        userId: '123',
+      });
       const compareSpy = jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
       const response = await request(app)
@@ -211,6 +227,8 @@ describe('Auth Integration Tests', () => {
     });
 
     it('debería retornar error 401 con token inválido', async () => {
+      mockPrisma.blacklistedToken.findUnique.mockResolvedValue(null);
+
       const response = await request(app)
         .get('/api/auth/profile')
         .set('Authorization', 'Bearer invalid.token')

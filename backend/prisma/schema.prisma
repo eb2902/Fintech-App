@@ -8,12 +8,38 @@ datasource db {
 }
 
 model User {
+  id              String            @id @default(uuid())
+  email           String            @unique
+  password        String
+  name            String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  refreshTokens   RefreshToken[]
+  blacklistedTokens BlacklistedToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("users")
+  @@map("refresh_tokens")
+}
+
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("blacklisted_tokens")
 }
