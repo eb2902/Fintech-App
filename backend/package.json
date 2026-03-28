@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "db:generate": "prisma generate",
@@ -14,7 +17,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
@@ -24,6 +27,9 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.1.0",
     "globals": "^17.4.0",
-    "prisma": "^5.22.0"
+    "jest": "^30.3.0",
+    "jest-mock-extended": "^4.0.0",
+    "prisma": "^5.22.0",
+    "supertest": "^7.2.2"
   }
 }
