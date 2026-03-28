@@ -10,7 +10,7 @@ if (!JWT_SECRET) {
   } else {
     console.warn('⚠️  JWT_SECRET no está configurado. Usando secret por defecto SOLO para desarrollo.');
     // En desarrollo, usar un secret por defecto (NO usar en producción)
-    process.env.JWT_SECRET = 'dev-secret-key-change-in-production-' + Math.random().toString(36).substring(2);
+    process.env.JWT_SECRET = 'dev-secret-key-change-in-production-' + crypto.randomBytes(32).toString('hex');
   }
 }
 
