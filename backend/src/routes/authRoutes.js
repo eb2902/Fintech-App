@@ -7,11 +7,18 @@ import {
   validateRegister, 
   validateLogin 
 } from '../middleware/validationMiddleware.js';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // máximo 100 peticiones por IP por ventana
+});
+
 // Middleware global para todas las rutas POST
 router.use(validateContentType);
+router.use(authRateLimiter);
 
 // Rutas públicas con validación
 router.post('/register', sanitizeInputs, validateRegister, register);
