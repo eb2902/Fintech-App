@@ -8,8 +8,14 @@ import {
   validateLogin 
 } from '../middleware/validationMiddleware.js';
 import rateLimit from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 requests per windowMs on protected auth routes
+});
+
 
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -19,9 +25,9 @@ const authRateLimiter = rateLimit({
 // Middleware global para todas las rutas POST
 router.use(validateContentType);
 router.use(authRateLimiter);
-
-// Rutas públicas con validación
-router.post('/register', sanitizeInputs, validateRegister, register);
+router.get('/profile', authenticate, authLimiter, getProfile);
+router.post('/logout', authenticate, authLimiter, logout);
+router.post('/cleanup', authenticate, authLimiter, cleanupTokens);
 router.post('/login', sanitizeInputs, validateLogin, login);
 router.post('/refresh', refreshToken);
 
