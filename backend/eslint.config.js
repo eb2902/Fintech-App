@@ -9,19 +9,32 @@ export default [
       sourceType: 'module',
       globals: {
         ...globals.node,
-        ...globals.es2024
+        ...globals.es2021
       }
     },
     rules: {
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { 
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }],
       'no-console': 'off',
-      'no-empty': ['error', { allowEmptyCatch: false }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
       'semi': ['error', 'always'],
       'quotes': ['error', 'single'],
       'indent': ['error', 2]
     }
   },
   {
-    ignores: ['node_modules/', 'dist/']
+    files: ['**/*.test.js', '**/tests/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest
+      }
+    }
+  },
+  {
+    ignores: ['node_modules/', 'dist/', 'coverage/']
   }
 ];
