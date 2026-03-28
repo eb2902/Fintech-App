@@ -8,7 +8,6 @@ import {
   validateLogin 
 } from '../middleware/validationMiddleware.js';
 import rateLimit from 'express-rate-limit';
-import rateLimit from 'express-rate-limit';
 
 const router = Router();
 const authLimiter = rateLimit({
