@@ -78,32 +78,6 @@ describe('Auth Controller', () => {
       hashSpy.mockRestore();
     });
 
-    it('debería retornar error 400 si faltan campos requeridos', async () => {
-      mockReq.body = { email: 'test@example.com' };
-
-      await register(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Email, contraseña y nombre son requeridos',
-      });
-    });
-
-    it('debería retornar error 400 si la contraseña es muy corta', async () => {
-      mockReq.body = {
-        email: 'test@example.com',
-        password: '12345',
-        name: 'Test',
-      };
-
-      await register(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'La contraseña debe tener al menos 6 caracteres',
-      });
-    });
-
     it('debería retornar error 400 si el email ya existe', async () => {
       mockReq.body = {
         email: 'existing@example.com',
@@ -168,17 +142,6 @@ describe('Auth Controller', () => {
       );
 
       compareSpy.mockRestore();
-    });
-
-    it('debería retornar error 400 si faltan email o contraseña', async () => {
-      mockReq.body = { email: 'test@example.com' };
-
-      await login(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Email y contraseña son requeridos',
-      });
     });
 
     it('debería retornar error 401 si el usuario no existe', async () => {

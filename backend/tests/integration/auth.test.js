@@ -33,7 +33,7 @@ describe('Auth Integration Tests', () => {
     it('debería registrar un usuario exitosamente', async () => {
       const userData = {
         email: 'new@example.com',
-        password: 'password123',
+        password: 'Password123!',
         name: 'Test User',
       };
 
@@ -67,7 +67,7 @@ describe('Auth Integration Tests', () => {
         .send({ email: 'test@example.com' })
         .expect(400);
 
-      expect(response.body).toHaveProperty('error', 'Email, contraseña y nombre son requeridos');
+      expect(response.body).toHaveProperty('error', 'El nombre es requerido');
     });
 
     it('debería retornar error 400 si la contraseña es muy corta', async () => {
@@ -80,7 +80,20 @@ describe('Auth Integration Tests', () => {
         })
         .expect(400);
 
-      expect(response.body).toHaveProperty('error', 'La contraseña debe tener al menos 6 caracteres');
+      expect(response.body).toHaveProperty('error', 'La contraseña debe tener al menos 8 caracteres');
+    });
+
+    it('debería retornar error 400 si la contraseña no es fuerte', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'test@example.com',
+          password: 'password123',
+          name: 'Test',
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error', 'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial (@$!%*?&#+_-)');
     });
 
     it('debería retornar error 400 si el email ya existe', async () => {
@@ -90,7 +103,7 @@ describe('Auth Integration Tests', () => {
         .post('/api/auth/register')
         .send({
           email: 'existing@example.com',
-          password: 'password123',
+          password: 'Password123!',
           name: 'Test',
         })
         .expect(400);
@@ -105,7 +118,7 @@ describe('Auth Integration Tests', () => {
         .post('/api/auth/register')
         .send({
           email: 'test@example.com',
-          password: 'password123',
+          password: 'Password123!',
           name: 'Test',
         })
         .expect(500);
@@ -149,7 +162,7 @@ describe('Auth Integration Tests', () => {
         .send({ email: 'test@example.com' })
         .expect(400);
 
-      expect(response.body).toHaveProperty('error', 'Email y contraseña son requeridos');
+      expect(response.body).toHaveProperty('error', 'La contraseña es requerida');
     });
 
     it('debería retornar error 401 si el usuario no existe', async () => {
