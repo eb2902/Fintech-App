@@ -7,10 +7,16 @@ const mockPrisma = {
     findUnique: jest.fn(),
     create: jest.fn(),
   },
+  refreshToken: {
+    create: jest.fn(),
+  },
 };
 
 // Mock de jwt.js
 const mockGenerateToken = jest.fn(() => 'mock.jwt.token');
+const mockGenerateRefreshToken = jest.fn(() => 'mock.refresh.token');
+const mockDecodeToken = jest.fn();
+const mockGetTokenExpiration = jest.fn(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
 
 // Mock de los módulos
 jest.unstable_mockModule('../../src/config/database.js', () => ({
@@ -19,6 +25,9 @@ jest.unstable_mockModule('../../src/config/database.js', () => ({
 
 jest.unstable_mockModule('../../src/utils/jwt.js', () => ({
   generateToken: mockGenerateToken,
+  generateRefreshToken: mockGenerateRefreshToken,
+  decodeToken: mockDecodeToken,
+  getTokenExpiration: mockGetTokenExpiration,
 }));
 
 // Importar después de los mocks

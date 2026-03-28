@@ -1,10 +1,35 @@
 import { jest } from '@jest/globals';
-import jwt from 'jsonwebtoken';
+
+// Mock de Prisma
+const mockPrisma = {
+  blacklistedToken: {
+    findUnique: jest.fn(),
+  },
+};
+
+// Mock de verifyToken
+const mockVerifyToken = jest.fn();
+
+// Mock de los módulos antes de importar
+jest.unstable_mockModule('../../src/config/database.js', () => ({
+  default: mockPrisma,
+}));
+
+jest.unstable_mockModule('../../src/utils/jwt.js', () => ({
+  verifyToken: mockVerifyToken,
+}));
 
 describe('Auth Middleware', () => {
   let mockReq;
   let mockRes;
   let mockNext;
+  let authenticate;
+
+  beforeAll(async () => {
+    // Importar después de los mocks
+    const middleware = await import('../../src/middleware/authMiddleware.js');
+    authenticate = middleware.authenticate;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -26,23 +51,21 @@ describe('Auth Middleware', () => {
       const mockDecoded = { userId: '123', email: 'test@example.com' };
       mockReq.headers.authorization = 'Bearer valid.jwt.token';
       
-      const verifySpy = jest.spyOn(jwt, 'verify').mockReturnValue(mockDecoded);
+      mockPrisma.blacklistedToken.findUnique.mockResolvedValue(null);
+      mockVerifyToken.mockReturnValue(mockDecoded);
 
-      const { authenticate } = await import('../../src/middleware/authMiddleware.js');
+      await authenticate(mockReq, mockRes, mockNext);
 
-      authenticate(mockReq, mockRes, mockNext);
-
-      expect(verifySpy).toHaveBeenCalledWith('valid.jwt.token', process.env.JWT_SECRET);
+      expect(mockPrisma.blacklistedToken.findUnique).toHaveBeenCalledWith({
+        where: { token: 'valid.jwt.token' }
+      });
+      expect(mockVerifyToken).toHaveBeenCalledWith('valid.jwt.token');
       expect(mockReq.user).toEqual(mockDecoded);
       expect(mockNext).toHaveBeenCalled();
-
-      verifySpy.mockRestore();
     });
 
     it('debería retornar error 401 si no hay header de autorización', async () => {
-      const { authenticate } = await import('../../src/middleware/authMiddleware.js');
-
-      authenticate(mockReq, mockRes, mockNext);
+      await authenticate(mockReq, mockRes, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({
@@ -54,9 +77,7 @@ describe('Auth Middleware', () => {
     it('debería retornar error 401 si el formato del token es inválido', async () => {
       mockReq.headers.authorization = 'InvalidFormat';
 
-      const { authenticate } = await import('../../src/middleware/authMiddleware.js');
-
-      authenticate(mockReq, mockRes, mockNext);
+      await authenticate(mockReq, mockRes, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({
@@ -68,52 +89,58 @@ describe('Auth Middleware', () => {
     it('debería retornar error 401 si el token es inválido', async () => {
       mockReq.headers.authorization = 'Bearer invalid.token';
       
-      const verifySpy = jest.spyOn(jwt, 'verify').mockImplementation(() => {
-        throw new Error('jwt malformed');
+      mockPrisma.blacklistedToken.findUnique.mockResolvedValue(null);
+      mockVerifyToken.mockImplementation(() => {
+        throw new Error('Token inválido o expirado');
       });
 
-      const { authenticate } = await import('../../src/middleware/authMiddleware.js');
-
-      authenticate(mockReq, mockRes, mockNext);
+      await authenticate(mockReq, mockRes, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({
         error: 'Token inválido o expirado',
       });
       expect(mockNext).not.toHaveBeenCalled();
-
-      verifySpy.mockRestore();
     });
 
     it('debería retornar error 401 si el token ha expirado', async () => {
       mockReq.headers.authorization = 'Bearer expired.token';
       
-      const verifySpy = jest.spyOn(jwt, 'verify').mockImplementation(() => {
-        throw new Error('jwt expired');
+      mockPrisma.blacklistedToken.findUnique.mockResolvedValue(null);
+      mockVerifyToken.mockImplementation(() => {
+        throw new Error('Token inválido o expirado');
       });
 
-      const { authenticate } = await import('../../src/middleware/authMiddleware.js');
-
-      authenticate(mockReq, mockRes, mockNext);
+      await authenticate(mockReq, mockRes, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({
         error: 'Token inválido o expirado',
       });
       expect(mockNext).not.toHaveBeenCalled();
+    });
 
-      verifySpy.mockRestore();
+    it('debería retornar error 401 si el token está en la blacklist', async () => {
+      mockReq.headers.authorization = 'Bearer blacklisted.token';
+      
+      mockPrisma.blacklistedToken.findUnique.mockResolvedValue({
+        id: '1',
+        token: 'blacklisted.token',
+      });
+
+      await authenticate(mockReq, mockRes, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(401);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: 'Token revocado. Por favor, inicia sesión nuevamente.',
+      });
+      expect(mockNext).not.toHaveBeenCalled();
     });
 
     it('debería manejar header con múltiples espacios', async () => {
-      const mockDecoded = { userId: '123', email: 'test@example.com' };
       mockReq.headers.authorization = 'Bearer  valid.token.with.spaces';
       
-      const verifySpy = jest.spyOn(jwt, 'verify').mockReturnValue(mockDecoded);
-
-      const { authenticate } = await import('../../src/middleware/authMiddleware.js');
-
-      authenticate(mockReq, mockRes, mockNext);
+      await authenticate(mockReq, mockRes, mockNext);
 
       // El token se extrae con split(' ')[1], que para 'Bearer  valid.token.with.spaces' 
       // devuelve '' (cadena vacía) porque split(' ')[1] toma el segundo elemento
@@ -123,8 +150,6 @@ describe('Auth Middleware', () => {
         error: 'Formato de token inválido',
       });
       expect(mockNext).not.toHaveBeenCalled();
-
-      verifySpy.mockRestore();
     });
   });
 });

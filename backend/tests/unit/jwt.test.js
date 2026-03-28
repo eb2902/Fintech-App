@@ -20,7 +20,10 @@ describe('JWT Utils', () => {
       expect(signSpy).toHaveBeenCalledWith(
         mockPayload,
         process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+        expect.objectContaining({ 
+          expiresIn: '15m',
+          jwtid: expect.any(String)
+        })
       );
       expect(result).toBe(mockToken);
 

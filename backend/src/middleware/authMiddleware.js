@@ -1,6 +1,7 @@
 import { verifyToken } from '../utils/jwt.js';
+import prisma from '../config/database.js';
 
-export const authenticate = (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -12,6 +13,15 @@ export const authenticate = (req, res, next) => {
     
     if (!token) {
       return res.status(401).json({ error: 'Formato de token inválido' });
+    }
+
+    // Verificar si el token está en la blacklist
+    const blacklistedToken = await prisma.blacklistedToken.findUnique({
+      where: { token }
+    });
+
+    if (blacklistedToken) {
+      return res.status(401).json({ error: 'Token revocado. Por favor, inicia sesión nuevamente.' });
     }
 
     const decoded = verifyToken(token);
