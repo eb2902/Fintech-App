@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MockRequest, MockResponse, MockDeleteResponse, TransactionData } from '../test/types';
+import type { TransactionData } from '../test/types';
+import * as transactionController from './transaction.controller';
 
 vi.mock('../config/database', () => ({
+  __esModule: true,
   default: {
     transaction: {
       create: vi.fn(),
@@ -15,9 +17,10 @@ vi.mock('../config/database', () => ({
 }));
 
 import prisma from '../config/database';
-const mockedPrisma = vi.mocked(prisma);
+type MockFn = ReturnType<typeof vi.fn>;
+const mockedPrisma = vi.mocked(prisma, true);
 
-const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
+const createMockReq = (overrides: Record<string, unknown> = {}): unknown => ({
   body: {},
   params: {},
   query: {},
@@ -25,17 +28,14 @@ const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
   ...overrides,
 });
 
-const createMockRes = (): MockResponse => ({
-  status: vi.fn().mockReturnThis(),
-  json: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-});
-
-const createMockDeleteRes = (): MockDeleteResponse => ({
-  status: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-  json: vi.fn().mockReturnThis(),
-});
+const createMockRes = (): Record<string, MockFn> => {
+  const mock = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+  };
+  return mock;
+};
 
 describe('transaction.controller', () => {
   beforeEach(() => {
@@ -44,11 +44,9 @@ describe('transaction.controller', () => {
 
   describe('createTransaction', () => {
     it('should create a transaction successfully', async () => {
-      const { createTransaction } = await import('./transaction.controller');
-
       const validCategoryId = '550e8400-e29b-41d4-a716-446655440000';
 
-      mockedPrisma.transaction.create.mockResolvedValue({
+      (mockedPrisma.transaction.create as MockFn).mockResolvedValue({
         id: '1',
         amount: 100.00,
         description: 'Test transaction',
@@ -71,7 +69,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await createTransaction(req, res);
+      await transactionController.createTransaction(req as unknown as Parameters<typeof transactionController.createTransaction>[0], res as unknown as Parameters<typeof transactionController.createTransaction>[1]);
 
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(
@@ -85,8 +83,6 @@ describe('transaction.controller', () => {
     });
 
     it('should return 400 for invalid input', async () => {
-      const { createTransaction } = await import('./transaction.controller');
-
       const req = createMockReq({
         body: {
           amount: -50,
@@ -97,7 +93,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await createTransaction(req, res);
+      await transactionController.createTransaction(req as unknown as Parameters<typeof transactionController.createTransaction>[0], res as unknown as Parameters<typeof transactionController.createTransaction>[1]);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -105,9 +101,7 @@ describe('transaction.controller', () => {
 
   describe('getTransactions', () => {
     it('should return paginated transactions', async () => {
-      const { getTransactions } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findMany.mockResolvedValue([
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([
         {
           id: '1',
           amount: 50.00,
@@ -116,7 +110,7 @@ describe('transaction.controller', () => {
           category: { name: 'Food' },
         },
       ] as TransactionData[]);
-      mockedPrisma.transaction.count.mockResolvedValue(1);
+      (mockedPrisma.transaction.count as MockFn).mockResolvedValue(1);
 
       const req = createMockReq({
         query: { page: '1', limit: '10' },
@@ -124,7 +118,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await getTransactions(req, res);
+      await transactionController.getTransactions(req as unknown as Parameters<typeof transactionController.getTransactions>[0], res as unknown as Parameters<typeof transactionController.getTransactions>[1]);
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -139,10 +133,8 @@ describe('transaction.controller', () => {
     });
 
     it('should filter transactions by type', async () => {
-      const { getTransactions } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findMany.mockResolvedValue([]);
-      mockedPrisma.transaction.count.mockResolvedValue(0);
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([]);
+      (mockedPrisma.transaction.count as MockFn).mockResolvedValue(0);
 
       const req = createMockReq({
         query: { type: 'INCOME' },
@@ -150,7 +142,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await getTransactions(req, res);
+      await transactionController.getTransactions(req as unknown as Parameters<typeof transactionController.getTransactions>[0], res as unknown as Parameters<typeof transactionController.getTransactions>[1]);
 
       expect(mockedPrisma.transaction.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -165,9 +157,7 @@ describe('transaction.controller', () => {
 
   describe('getTransactionById', () => {
     it('should return transaction by ID', async () => {
-      const { getTransactionById } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findFirst.mockResolvedValue({
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue({
         id: '1',
         amount: 100.00,
         description: 'Test',
@@ -181,7 +171,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await getTransactionById(req, res);
+      await transactionController.getTransactionById(req as unknown as Parameters<typeof transactionController.getTransactionById>[0], res as unknown as Parameters<typeof transactionController.getTransactionById>[1]);
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -192,9 +182,7 @@ describe('transaction.controller', () => {
     });
 
     it('should return 404 if transaction not found', async () => {
-      const { getTransactionById } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findFirst.mockResolvedValue(null);
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
         params: { id: 'nonexistent' },
@@ -202,7 +190,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await getTransactionById(req, res);
+      await transactionController.getTransactionById(req as unknown as Parameters<typeof transactionController.getTransactionById>[0], res as unknown as Parameters<typeof transactionController.getTransactionById>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'Transaction not found' });
@@ -211,10 +199,8 @@ describe('transaction.controller', () => {
 
   describe('updateTransaction', () => {
     it('should update transaction successfully', async () => {
-      const { updateTransaction } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findFirst.mockResolvedValue({ id: '1', userId: 'user-1' } as TransactionData);
-      mockedPrisma.transaction.update.mockResolvedValue({
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue({ id: '1', userId: 'user-1' } as TransactionData);
+      (mockedPrisma.transaction.update as MockFn).mockResolvedValue({
         id: '1',
         amount: 200.00,
         description: 'Updated',
@@ -229,7 +215,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await updateTransaction(req, res);
+      await transactionController.updateTransaction(req as unknown as Parameters<typeof transactionController.updateTransaction>[0], res as unknown as Parameters<typeof transactionController.updateTransaction>[1]);
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -240,9 +226,7 @@ describe('transaction.controller', () => {
     });
 
     it('should return 404 if transaction not found', async () => {
-      const { updateTransaction } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findFirst.mockResolvedValue(null);
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
         params: { id: 'nonexistent' },
@@ -251,7 +235,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await updateTransaction(req, res);
+      await transactionController.updateTransaction(req as unknown as Parameters<typeof transactionController.updateTransaction>[0], res as unknown as Parameters<typeof transactionController.updateTransaction>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -259,26 +243,22 @@ describe('transaction.controller', () => {
 
   describe('deleteTransaction', () => {
     it('should delete transaction successfully', async () => {
-      const { deleteTransaction } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findFirst.mockResolvedValue({ id: '1', userId: 'user-1' } as TransactionData);
-      mockedPrisma.transaction.delete.mockResolvedValue({} as TransactionData);
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue({ id: '1', userId: 'user-1' } as TransactionData);
+      (mockedPrisma.transaction.delete as MockFn).mockResolvedValue({} as TransactionData);
 
       const req = createMockReq({
         params: { id: '1' },
         userId: 'user-1',
       });
-      const res = createMockDeleteRes();
+      const res = createMockRes();
 
-      await deleteTransaction(req, res);
+      await transactionController.deleteTransaction(req as unknown as Parameters<typeof transactionController.deleteTransaction>[0], res as unknown as Parameters<typeof transactionController.deleteTransaction>[1]);
 
       expect(res.status).toHaveBeenCalledWith(204);
     });
 
     it('should return 404 if transaction not found', async () => {
-      const { deleteTransaction } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findFirst.mockResolvedValue(null);
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
         params: { id: 'nonexistent' },
@@ -286,7 +266,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await deleteTransaction(req, res);
+      await transactionController.deleteTransaction(req as unknown as Parameters<typeof transactionController.deleteTransaction>[0], res as unknown as Parameters<typeof transactionController.deleteTransaction>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -294,9 +274,7 @@ describe('transaction.controller', () => {
 
   describe('getSummary', () => {
     it('should return financial summary', async () => {
-      const { getSummary } = await import('./transaction.controller');
-
-      mockedPrisma.transaction.findMany.mockResolvedValue([
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([
         { id: '1', amount: 1000, type: 'INCOME', category: { name: 'Salary' } },
         { id: '2', amount: 200, type: 'EXPENSE', category: { name: 'Food' } },
         { id: '3', amount: 300, type: 'EXPENSE', category: { name: 'Transport' } },
@@ -308,7 +286,7 @@ describe('transaction.controller', () => {
       });
       const res = createMockRes();
 
-      await getSummary(req, res);
+      await transactionController.getSummary(req as unknown as Parameters<typeof transactionController.getSummary>[0], res as unknown as Parameters<typeof transactionController.getSummary>[1]);
 
       expect(res.json).toHaveBeenCalledWith({
         totalIncome: 1000,

@@ -72,7 +72,7 @@ describe('api interceptors', () => {
   it('should add auth token to request headers when token exists', () => {
     localStorage.setItem('token', 'test-jwt-token');
     
-    const mockConfig = {
+    const mockConfig: { headers: Record<string, string> } = {
       headers: {},
     };
 
@@ -88,7 +88,7 @@ describe('api interceptors', () => {
   });
 
   it('should not add token when not present in localStorage', () => {
-    const mockConfig = {
+    const mockConfig: { headers: Record<string, string> } = {
       headers: {},
     };
 

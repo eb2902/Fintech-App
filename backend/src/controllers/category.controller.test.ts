@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MockRequest, MockResponse, MockDeleteResponse, CategoryData } from '../test/types';
+import type { CategoryData } from '../test/types';
+import * as categoryController from './category.controller';
 
 vi.mock('../config/database', () => ({
+  __esModule: true,
   default: {
     category: {
       create: vi.fn(),
@@ -14,9 +16,10 @@ vi.mock('../config/database', () => ({
 }));
 
 import prisma from '../config/database';
-const mockedPrisma = vi.mocked(prisma);
+type MockFn = ReturnType<typeof vi.fn>;
+const mockedPrisma = vi.mocked(prisma, true);
 
-const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
+const createMockReq = (overrides: Record<string, unknown> = {}): unknown => ({
   body: {},
   params: {},
   query: {},
@@ -24,17 +27,14 @@ const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
   ...overrides,
 });
 
-const createMockRes = (): MockResponse => ({
-  status: vi.fn().mockReturnThis(),
-  json: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-});
-
-const createMockDeleteRes = (): MockDeleteResponse => ({
-  status: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-  json: vi.fn().mockReturnThis(),
-});
+const createMockRes = (): Record<string, MockFn> => {
+  const mock = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+  };
+  return mock;
+};
 
 describe('category.controller', () => {
   beforeEach(() => {
@@ -43,9 +43,7 @@ describe('category.controller', () => {
 
   describe('createCategory', () => {
     it('should create a category successfully', async () => {
-      const { createCategory } = await import('./category.controller');
-
-      mockedPrisma.category.create.mockResolvedValue({
+      (mockedPrisma.category.create as MockFn).mockResolvedValue({
         id: '1',
         name: 'Food',
         type: 'EXPENSE',
@@ -63,7 +61,7 @@ describe('category.controller', () => {
       });
       const res = createMockRes();
 
-      await createCategory(req, res);
+      await categoryController.createCategory(req as unknown as Parameters<typeof categoryController.createCategory>[0], res as unknown as Parameters<typeof categoryController.createCategory>[1]);
 
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(
@@ -75,8 +73,6 @@ describe('category.controller', () => {
     });
 
     it('should return 400 for invalid input', async () => {
-      const { createCategory } = await import('./category.controller');
-
       const req = createMockReq({
         body: {
           name: '',
@@ -85,7 +81,7 @@ describe('category.controller', () => {
       });
       const res = createMockRes();
 
-      await createCategory(req, res);
+      await categoryController.createCategory(req as unknown as Parameters<typeof categoryController.createCategory>[0], res as unknown as Parameters<typeof categoryController.createCategory>[1]);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -93,9 +89,7 @@ describe('category.controller', () => {
 
   describe('getCategories', () => {
     it('should return all categories', async () => {
-      const { getCategories } = await import('./category.controller');
-
-      mockedPrisma.category.findMany.mockResolvedValue([
+      (mockedPrisma.category.findMany as MockFn).mockResolvedValue([
         { id: '1', name: 'Food', type: 'EXPENSE' },
         { id: '2', name: 'Salary', type: 'INCOME' },
       ] as CategoryData[]);
@@ -103,7 +97,7 @@ describe('category.controller', () => {
       const req = createMockReq({ query: {} });
       const res = createMockRes();
 
-      await getCategories(req, res);
+      await categoryController.getCategories(req as unknown as Parameters<typeof categoryController.getCategories>[0], res as unknown as Parameters<typeof categoryController.getCategories>[1]);
 
       expect(res.json).toHaveBeenCalledWith(
         expect.arrayContaining([
@@ -114,16 +108,14 @@ describe('category.controller', () => {
     });
 
     it('should filter categories by type', async () => {
-      const { getCategories } = await import('./category.controller');
-
-      mockedPrisma.category.findMany.mockResolvedValue([
+      (mockedPrisma.category.findMany as MockFn).mockResolvedValue([
         { id: '1', name: 'Food', type: 'EXPENSE' },
       ] as CategoryData[]);
 
       const req = createMockReq({ query: { type: 'EXPENSE' } });
       const res = createMockRes();
 
-      await getCategories(req, res);
+      await categoryController.getCategories(req as unknown as Parameters<typeof categoryController.getCategories>[0], res as unknown as Parameters<typeof categoryController.getCategories>[1]);
 
       expect(mockedPrisma.category.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -135,9 +127,7 @@ describe('category.controller', () => {
 
   describe('getCategoryById', () => {
     it('should return category by ID', async () => {
-      const { getCategoryById } = await import('./category.controller');
-
-      mockedPrisma.category.findUnique.mockResolvedValue({
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue({
         id: '1',
         name: 'Food',
         type: 'EXPENSE',
@@ -146,7 +136,7 @@ describe('category.controller', () => {
       const req = createMockReq({ params: { id: '1' } });
       const res = createMockRes();
 
-      await getCategoryById(req, res);
+      await categoryController.getCategoryById(req as unknown as Parameters<typeof categoryController.getCategoryById>[0], res as unknown as Parameters<typeof categoryController.getCategoryById>[1]);
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -157,14 +147,12 @@ describe('category.controller', () => {
     });
 
     it('should return 404 if category not found', async () => {
-      const { getCategoryById } = await import('./category.controller');
-
-      mockedPrisma.category.findUnique.mockResolvedValue(null);
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({ params: { id: 'nonexistent' } });
       const res = createMockRes();
 
-      await getCategoryById(req, res);
+      await categoryController.getCategoryById(req as unknown as Parameters<typeof categoryController.getCategoryById>[0], res as unknown as Parameters<typeof categoryController.getCategoryById>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'Category not found' });
@@ -173,10 +161,8 @@ describe('category.controller', () => {
 
   describe('updateCategory', () => {
     it('should update category successfully', async () => {
-      const { updateCategory } = await import('./category.controller');
-
-      mockedPrisma.category.findUnique.mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
-      mockedPrisma.category.update.mockResolvedValue({
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
+      (mockedPrisma.category.update as MockFn).mockResolvedValue({
         id: '1',
         name: 'Updated Food',
         type: 'EXPENSE',
@@ -188,7 +174,7 @@ describe('category.controller', () => {
       });
       const res = createMockRes();
 
-      await updateCategory(req, res);
+      await categoryController.updateCategory(req as unknown as Parameters<typeof categoryController.updateCategory>[0], res as unknown as Parameters<typeof categoryController.updateCategory>[1]);
 
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -198,9 +184,7 @@ describe('category.controller', () => {
     });
 
     it('should return 404 if category not found', async () => {
-      const { updateCategory } = await import('./category.controller');
-
-      mockedPrisma.category.findUnique.mockResolvedValue(null);
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
         params: { id: 'nonexistent' },
@@ -208,7 +192,7 @@ describe('category.controller', () => {
       });
       const res = createMockRes();
 
-      await updateCategory(req, res);
+      await categoryController.updateCategory(req as unknown as Parameters<typeof categoryController.updateCategory>[0], res as unknown as Parameters<typeof categoryController.updateCategory>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
     });
@@ -216,28 +200,24 @@ describe('category.controller', () => {
 
   describe('deleteCategory', () => {
     it('should delete category successfully', async () => {
-      const { deleteCategory } = await import('./category.controller');
-
-      mockedPrisma.category.findUnique.mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
-      mockedPrisma.category.delete.mockResolvedValue({} as CategoryData);
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
+      (mockedPrisma.category.delete as MockFn).mockResolvedValue({} as CategoryData);
 
       const req = createMockReq({ params: { id: '1' } });
-      const res = createMockDeleteRes();
+      const res = createMockRes();
 
-      await deleteCategory(req, res);
+      await categoryController.deleteCategory(req as unknown as Parameters<typeof categoryController.deleteCategory>[0], res as unknown as Parameters<typeof categoryController.deleteCategory>[1]);
 
       expect(res.status).toHaveBeenCalledWith(204);
     });
 
     it('should return 404 if category not found', async () => {
-      const { deleteCategory } = await import('./category.controller');
-
-      mockedPrisma.category.findUnique.mockResolvedValue(null);
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({ params: { id: 'nonexistent' } });
       const res = createMockRes();
 
-      await deleteCategory(req, res);
+      await categoryController.deleteCategory(req as unknown as Parameters<typeof categoryController.deleteCategory>[0], res as unknown as Parameters<typeof categoryController.deleteCategory>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
     });

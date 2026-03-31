@@ -6,18 +6,6 @@ export interface MockRequest {
   headers?: Record<string, string>;
 }
 
-export interface MockResponse {
-  status: ReturnType<typeof vi.fn>;
-  json: ReturnType<typeof vi.fn>;
-  send: ReturnType<typeof vi.fn>;
-}
-
-export interface MockDeleteResponse {
-  status: ReturnType<typeof vi.fn>;
-  send: ReturnType<typeof vi.fn>;
-  json: ReturnType<typeof vi.fn>;
-}
-
 export interface UserData {
   id: string;
   name?: string;

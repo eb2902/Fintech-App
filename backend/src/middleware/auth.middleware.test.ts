@@ -1,18 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MockRequest, MockResponse } from '../test/types';
+import type { NextFunction } from 'express';
+import * as authMiddleware from './auth.middleware';
 
 vi.mock('jsonwebtoken', () => ({
+  __esModule: true,
   default: {
     verify: vi.fn(),
   },
 }));
 
 import jwt from 'jsonwebtoken';
-const mockedJwt = vi.mocked(jwt);
+type MockFn = ReturnType<typeof vi.fn>;
+const mockedJwt = vi.mocked(jwt, true);
 
 const originalEnv = process.env;
 
-const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
+const createMockReq = (overrides: Record<string, unknown> = {}): unknown => ({
   body: {},
   params: {},
   query: {},
@@ -20,11 +23,14 @@ const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
   ...overrides,
 });
 
-const createMockRes = (): MockResponse => ({
-  status: vi.fn().mockReturnThis(),
-  json: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-});
+const createMockRes = (): Record<string, MockFn> => {
+  const mock = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+  };
+  return mock;
+};
 
 describe('auth.middleware', () => {
   beforeEach(() => {
@@ -35,15 +41,13 @@ describe('auth.middleware', () => {
 
   describe('authenticateToken', () => {
     it('should return 401 if no authorization header', async () => {
-      const { authenticateToken } = await import('./auth.middleware');
-      
       const req = createMockReq({
         headers: {},
       });
       const res = createMockRes();
       const next = vi.fn();
 
-      authenticateToken(req, res, next);
+      authMiddleware.authenticateToken(req as unknown as Parameters<typeof authMiddleware.authenticateToken>[0], res as unknown as Parameters<typeof authMiddleware.authenticateToken>[1], next as unknown as NextFunction);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Access token required' });
@@ -51,8 +55,7 @@ describe('auth.middleware', () => {
     });
 
     it('should return 403 for malformed authorization header', async () => {
-      const { authenticateToken } = await import('./auth.middleware');
-      mockedJwt.verify.mockImplementation(() => {
+      (mockedJwt.verify as MockFn).mockImplementation(() => {
         throw new Error('Invalid token');
       });
       
@@ -64,7 +67,7 @@ describe('auth.middleware', () => {
       const res = createMockRes();
       const next = vi.fn();
 
-      authenticateToken(req, res, next);
+      authMiddleware.authenticateToken(req as unknown as Parameters<typeof authMiddleware.authenticateToken>[0], res as unknown as Parameters<typeof authMiddleware.authenticateToken>[1], next as unknown as NextFunction);
 
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
@@ -72,8 +75,7 @@ describe('auth.middleware', () => {
     });
 
     it('should return 403 if token is invalid', async () => {
-      const { authenticateToken } = await import('./auth.middleware');
-      mockedJwt.verify.mockImplementation(() => {
+      (mockedJwt.verify as MockFn).mockImplementation(() => {
         throw new Error('Invalid token');
       });
       
@@ -85,7 +87,7 @@ describe('auth.middleware', () => {
       const res = createMockRes();
       const next = vi.fn();
 
-      authenticateToken(req, res, next);
+      authMiddleware.authenticateToken(req as unknown as Parameters<typeof authMiddleware.authenticateToken>[0], res as unknown as Parameters<typeof authMiddleware.authenticateToken>[1], next as unknown as NextFunction);
 
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
@@ -93,8 +95,7 @@ describe('auth.middleware', () => {
     });
 
     it('should call next with valid token', async () => {
-      const { authenticateToken } = await import('./auth.middleware');
-      mockedJwt.verify.mockReturnValue({ userId: 'user-123' });
+      (mockedJwt.verify as MockFn).mockReturnValue({ userId: 'user-123' });
       
       const req = createMockReq({
         headers: {
@@ -104,9 +105,9 @@ describe('auth.middleware', () => {
       const res = createMockRes();
       const next = vi.fn();
 
-      authenticateToken(req, res, next);
+      authMiddleware.authenticateToken(req as unknown as Parameters<typeof authMiddleware.authenticateToken>[0], res as unknown as Parameters<typeof authMiddleware.authenticateToken>[1], next as unknown as NextFunction);
 
-      expect(req.userId).toBe('user-123');
+      expect((req as { userId?: string }).userId).toBe('user-123');
       expect(next).toHaveBeenCalled();
     });
   });

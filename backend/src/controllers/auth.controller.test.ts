@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { MockRequest, MockResponse, UserData } from '../test/types';
+import type { MockRequest, UserData } from '../test/types';
 
 // Mock dependencies BEFORE importing the controller
 vi.mock('../config/database', () => ({
+  __esModule: true,
   default: {
     user: {
       findUnique: vi.fn(),
@@ -12,6 +13,7 @@ vi.mock('../config/database', () => ({
 }));
 
 vi.mock('bcrypt', () => ({
+  __esModule: true,
   default: {
     hash: vi.fn(),
     compare: vi.fn(),
@@ -19,6 +21,7 @@ vi.mock('bcrypt', () => ({
 }));
 
 vi.mock('jsonwebtoken', () => ({
+  __esModule: true,
   default: {
     sign: vi.fn(),
   },
@@ -28,15 +31,18 @@ vi.mock('jsonwebtoken', () => ({
 import prisma from '../config/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import * as authController from './auth.controller';
 
-const mockedPrisma = vi.mocked(prisma);
-const mockedBcrypt = vi.mocked(bcrypt);
-const mockedJwt = vi.mocked(jwt);
+type MockFn = ReturnType<typeof vi.fn>;
+
+const mockedPrisma = vi.mocked(prisma, true);
+const mockedBcrypt = vi.mocked(bcrypt, true);
+const mockedJwt = vi.mocked(jwt, true);
 
 // Save original env
 const originalEnv = process.env;
 
-const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
+const createMockReq = (overrides: Partial<MockRequest> = {}): unknown => ({
   body: {},
   params: {},
   query: {},
@@ -44,11 +50,14 @@ const createMockReq = (overrides: Partial<MockRequest> = {}): MockRequest => ({
   ...overrides,
 });
 
-const createMockRes = (): MockResponse => ({
-  status: vi.fn().mockReturnThis(),
-  json: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-});
+const createMockRes = (): Record<string, MockFn> => {
+  const mock = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+  };
+  return mock;
+};
 
 describe('auth.controller', () => {
   beforeEach(() => {
@@ -62,9 +71,7 @@ describe('auth.controller', () => {
 
   describe('register', () => {
     it('should return 400 if user already exists', async () => {
-      const { register } = await import('./auth.controller');
-      
-      mockedPrisma.user.findUnique.mockResolvedValue({ id: '1', email: 'test@example.com' } as UserData);
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue({ id: '1', email: 'test@example.com' } as UserData);
 
       const req = createMockReq({
         body: {
@@ -75,24 +82,22 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await register(req, res);
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: 'User already exists' });
     });
 
     it('should create user and return token on successful registration', async () => {
-      const { register } = await import('./auth.controller');
-
-      mockedPrisma.user.findUnique.mockResolvedValue(null);
-      mockedPrisma.user.create.mockResolvedValue({
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue(null);
+      (mockedPrisma.user.create as MockFn).mockResolvedValue({
         id: '1',
         name: 'Test User',
         email: 'test@example.com',
         createdAt: new Date(),
       } as UserData);
-      mockedBcrypt.hash.mockResolvedValue('hashed-password');
-      mockedJwt.sign.mockReturnValue('mock-token');
+      (mockedBcrypt.hash as MockFn).mockResolvedValue('hashed-password');
+      (mockedJwt.sign as MockFn).mockReturnValue('mock-token');
 
       const req = createMockReq({
         body: {
@@ -103,7 +108,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await register(req, res);
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
 
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
@@ -117,8 +122,6 @@ describe('auth.controller', () => {
     });
 
     it('should return 400 for invalid input (short name)', async () => {
-      const { register } = await import('./auth.controller');
-
       const req = createMockReq({
         body: {
           name: 'T',
@@ -128,14 +131,12 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await register(req, res);
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it('should return 400 for invalid email', async () => {
-      const { register } = await import('./auth.controller');
-
       const req = createMockReq({
         body: {
           name: 'Test User',
@@ -145,14 +146,12 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await register(req, res);
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it('should return 400 for short password', async () => {
-      const { register } = await import('./auth.controller');
-
       const req = createMockReq({
         body: {
           name: 'Test User',
@@ -162,7 +161,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await register(req, res);
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -170,9 +169,7 @@ describe('auth.controller', () => {
 
   describe('login', () => {
     it('should return 401 for non-existent user', async () => {
-      const { login } = await import('./auth.controller');
-
-      mockedPrisma.user.findUnique.mockResolvedValue(null);
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
         body: {
@@ -182,21 +179,19 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await login(req, res);
+      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid credentials' });
     });
 
     it('should return 401 for wrong password', async () => {
-      const { login } = await import('./auth.controller');
-
-      mockedPrisma.user.findUnique.mockResolvedValue({
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
         password: 'correct-hash',
       } as UserData);
-      mockedBcrypt.compare.mockResolvedValue(false);
+      (mockedBcrypt.compare as MockFn).mockResolvedValue(false);
 
       const req = createMockReq({
         body: {
@@ -206,23 +201,21 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await login(req, res);
+      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid credentials' });
     });
 
     it('should return user and token on successful login', async () => {
-      const { login } = await import('./auth.controller');
-
-      mockedPrisma.user.findUnique.mockResolvedValue({
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue({
         id: '1',
         name: 'Test User',
         email: 'test@example.com',
         password: 'correct-hash',
       } as UserData);
-      mockedBcrypt.compare.mockResolvedValue(true);
-      mockedJwt.sign.mockReturnValue('mock-token');
+      (mockedBcrypt.compare as MockFn).mockResolvedValue(true);
+      (mockedJwt.sign as MockFn).mockReturnValue('mock-token');
 
       const req = createMockReq({
         body: {
@@ -232,7 +225,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await login(req, res);
+      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
 
       expect(res.json).toHaveBeenCalledWith({
         token: 'mock-token',
@@ -247,9 +240,7 @@ describe('auth.controller', () => {
 
   describe('getMe', () => {
     it('should return user by ID', async () => {
-      const { getMe } = await import('./auth.controller');
-
-      mockedPrisma.user.findUnique.mockResolvedValue({
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue({
         id: '1',
         name: 'Test User',
         email: 'test@example.com',
@@ -261,7 +252,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await getMe(req, res);
+      await authController.getMe(req as unknown as Parameters<typeof authController.getMe>[0], res as unknown as Parameters<typeof authController.getMe>[1]);
 
       expect(res.json).toHaveBeenCalledWith({
         id: '1',
@@ -272,16 +263,14 @@ describe('auth.controller', () => {
     });
 
     it('should return 404 if user not found', async () => {
-      const { getMe } = await import('./auth.controller');
-
-      mockedPrisma.user.findUnique.mockResolvedValue(null);
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
         userId: 'nonexistent',
       });
       const res = createMockRes();
 
-      await getMe(req, res);
+      await authController.getMe(req as unknown as Parameters<typeof authController.getMe>[0], res as unknown as Parameters<typeof authController.getMe>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
