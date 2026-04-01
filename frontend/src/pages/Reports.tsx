@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Calendar, BarChart3 } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import api from '../lib/api';
+import { SkeletonCard, SkeletonChartCard } from '../components/ui/SkeletonCard';
+import DateFilter from '../components/ui/DateFilter';
 
 interface Summary {
   totalIncome: number;
@@ -26,22 +30,46 @@ interface Transaction {
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
 
+function getDaysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+}
+
 export default function Reports() {
-  const { data: summary } = useQuery<Summary>({
-    queryKey: ['summary'],
+  const { isDark } = useTheme();
+  const chartTextColor = isDark ? '#d1d5db' : '#6b7280';
+  const chartGridColor = isDark ? '#374151' : '#e5e7eb';
+  const tooltipStyle = {
+    contentStyle: {
+      backgroundColor: isDark ? '#1f2937' : '#fff',
+      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+      borderRadius: '8px',
+      color: isDark ? '#f9fafb' : '#111827',
+    },
+  };
+
+  // Estado para filtros de fecha
+  const [startDate, setStartDate] = useState(getDaysAgo(90)); // Últimos 90 días por defecto
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const { data: summary, isLoading: summaryLoading } = useQuery<Summary>({
+    queryKey: ['summary', startDate, endDate],
     queryFn: async () => {
-      const response = await api.get('/transactions/summary');
+      const response = await api.get(`/transactions/summary?startDate=${startDate}&endDate=${endDate}`);
       return response.data;
     },
   });
 
-  const { data: transactions } = useQuery<{ transactions: Transaction[] }>({
-    queryKey: ['transactions', { limit: 100 }],
+  const { data: transactions, isLoading: transactionsLoading } = useQuery<{ transactions: Transaction[] }>({
+    queryKey: ['transactions', { limit: 500, startDate, endDate }],
     queryFn: async () => {
-      const response = await api.get('/transactions?limit=100');
+      const response = await api.get(`/transactions?limit=500&startDate=${startDate}&endDate=${endDate}`);
       return response.data;
     },
   });
+
+  const isLoading = summaryLoading || transactionsLoading;
 
   const categoryData = summary?.byCategory
     ? Object.entries(summary.byCategory)
@@ -79,18 +107,45 @@ export default function Reports() {
     ? ((summary.totalIncome - summary.totalExpenses) / summary.totalIncome) * 100
     : 0;
 
-  const avgTransaction = transactions?.transactions && transactions.transactions.length > 0
-    ? transactions.transactions
-        .filter((t) => t.type === 'EXPENSE')
-        .reduce((sum, t) => sum + Number(t.amount), 0) /
-      transactions.transactions.filter((t) => t.type === 'EXPENSE').length
+  const expenseTransactions = transactions?.transactions?.filter((t) => t.type === 'EXPENSE') || [];
+  const avgTransaction = expenseTransactions.length > 0
+    ? expenseTransactions.reduce((sum, t) => sum + Number(t.amount), 0) / expenseTransactions.length
     : 0;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reportes</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Análisis detallado de tus finanzas</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonChartCard />
+          <SkeletonChartCard />
+        </div>
+        <SkeletonChartCard />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reportes</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Análisis detallado de tus finanzas</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reportes</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Análisis detallado de tus finanzas</p>
+        </div>
+        <DateFilter
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+        />
       </div>
 
       {/* Key Metrics */}
@@ -152,10 +207,10 @@ export default function Reports() {
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+              <XAxis dataKey="month" tick={{ fill: chartTextColor }} />
+              <YAxis tick={{ fill: chartTextColor }} />
+              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} contentStyle={tooltipStyle.contentStyle} />
               <Legend />
               <Line type="monotone" dataKey="Ingresos" stroke="#22c55e" strokeWidth={2} />
               <Line type="monotone" dataKey="Gastos" stroke="#ef4444" strokeWidth={2} />
@@ -191,7 +246,7 @@ export default function Reports() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} contentStyle={tooltipStyle.contentStyle} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -207,10 +262,10 @@ export default function Reports() {
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={categoryData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" width={100} />
-                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={chartGridColor} />
+                <XAxis type="number" tick={{ fill: chartTextColor }} />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fill: chartTextColor }} />
+                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} contentStyle={tooltipStyle.contentStyle} />
                 <Bar dataKey="value" radius={[0, 8, 8, 0]}>
                   {categoryData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

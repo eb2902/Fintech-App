@@ -53,3 +53,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ocultar botones nativos de ver contraseña del navegador */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-contacts-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  width: 0;
+  height: 0;
+}

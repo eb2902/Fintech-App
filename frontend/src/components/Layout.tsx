@@ -13,6 +13,7 @@ import {
   Moon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,8 +29,16 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    toast('¿Cerrar sesión?', {
+      description: 'Tu sesión actual se cerrará',
+      action: {
+        label: 'Salir',
+        onClick: () => {
+          logout();
+          navigate('/login');
+        },
+      },
+    });
   };
 
   return (
