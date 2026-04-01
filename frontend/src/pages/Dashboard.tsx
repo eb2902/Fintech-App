@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon, Receipt } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../lib/api';
+import { SkeletonCard, SkeletonChartCard } from '../components/ui/SkeletonCard';
+import DateFilter from '../components/ui/DateFilter';
 
 interface Summary {
   totalIncome: number;
@@ -27,44 +30,76 @@ interface Transaction {
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
 
+function getDaysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+}
+
 export default function Dashboard() {
   const { isDark } = useTheme();
   const chartTextColor = isDark ? '#d1d5db' : '#6b7280';
   const chartGridColor = isDark ? '#374151' : '#e5e7eb';
+  
+  // Estado para filtros de fecha
+  const [startDate, setStartDate] = useState(getDaysAgo(30)); // Últimos 30 días por defecto
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
   const { data: summary, isLoading: summaryLoading } = useQuery<Summary>({
-    queryKey: ['summary'],
+    queryKey: ['summary', startDate, endDate],
     queryFn: async () => {
-      const response = await api.get('/transactions/summary');
+      const response = await api.get(`/transactions/summary?startDate=${startDate}&endDate=${endDate}`);
       return response.data;
     },
   });
 
   const { data: transactions, isLoading: transactionsLoading } = useQuery<Transaction[]>({
-    queryKey: ['transactions', { limit: 5 }],
+    queryKey: ['transactions', { limit: 5, startDate, endDate }],
     queryFn: async () => {
-      const response = await api.get('/transactions?limit=5');
+      const response = await api.get(`/transactions?limit=5&startDate=${startDate}&endDate=${endDate}`);
       return response.data.transactions;
     },
   });
+
+  const isLoading = summaryLoading || transactionsLoading;
 
   const categoryData = summary?.byCategory
     ? Object.entries(summary.byCategory).map(([name, value]) => ({ name, value }))
     : [];
 
-  if (summaryLoading || transactionsLoading) {
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Cargando datos...</p>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Resumen de tus finanzas</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonChartCard />
+          <SkeletonChartCard />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Resumen de tus finanzas</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Resumen de tus finanzas</p>
+        </div>
+        <DateFilter
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+        />
       </div>
 
       {/* Summary Cards */}

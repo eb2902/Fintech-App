@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit2, Trash2, X, Loader2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import api from '../lib/api';
+import { Skeleton } from '../components/ui/Skeleton';
 
 interface Transaction {
   id: string;
@@ -35,6 +37,27 @@ const transactionSchema = z.object({
 });
 
 const ITEMS_PER_PAGE = 10;
+
+// Skeleton loaders para transacciones
+const TransactionSkeletons = () => (
+  <div className="space-y-3">
+    {[...Array(5)].map((_, i) => (
+      <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+        <div className="flex items-center gap-4">
+          <Skeleton className="w-12 h-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 export default function Transactions() {
   const queryClient = useQueryClient();
@@ -211,7 +234,13 @@ export default function Transactions() {
   // Nota: la página se resetea a 1 directamente en los onChange de los filtros
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transacciones</h1>
@@ -314,9 +343,8 @@ export default function Transactions() {
       {/* Transactions List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="text-gray-500 dark:text-gray-400 animate-pulse">Cargando transacciones...</p>
+          <div className="p-6">
+            <TransactionSkeletons />
           </div>
         ) : paginatedTransactions.length > 0 ? (
           <>
@@ -582,6 +610,7 @@ export default function Transactions() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </motion.div>
   );
 }

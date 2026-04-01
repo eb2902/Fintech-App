@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { Wallet, Loader2, Eye, EyeOff } from 'lucide-react';
-import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/api';
 
@@ -12,7 +11,6 @@ interface LoginData {
 }
 
 export default function Login() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
@@ -21,12 +19,6 @@ export default function Login() {
     password: '',
   });
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (searchParams.get('redirected') === 'true') {
-      toast.info('Inicia sesión para continuar');
-    }
-  }, [searchParams]);
 
   const mutation = useMutation({
     mutationFn: async (data: LoginData) => {
@@ -94,6 +86,7 @@ export default function Login() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="current-password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all pr-12"
