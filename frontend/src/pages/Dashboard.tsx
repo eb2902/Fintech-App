@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon, Receipt } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../lib/api';
 
@@ -49,8 +49,9 @@ export default function Dashboard() {
 
   if (summaryLoading || transactionsLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Cargando datos...</p>
       </div>
     );
   }
@@ -58,16 +59,16 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Resumen de tus finanzas</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Resumen de tus finanzas</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Balance</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Balance</p>
               <p className={`text-2xl font-bold mt-1 ${(summary?.balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 ${summary?.balance?.toFixed(2) || '0.00'}
               </p>
@@ -78,10 +79,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Ingresos</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Ingresos</p>
               <p className="text-2xl font-bold text-green-600 mt-1">
                 ${summary?.totalIncome?.toFixed(2) || '0.00'}
               </p>
@@ -92,10 +93,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Gastos</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Gastos</p>
               <p className="text-2xl font-bold text-red-600 mt-1">
                 ${summary?.totalExpenses?.toFixed(2) || '0.00'}
               </p>
@@ -106,11 +107,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Transacciones</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Transacciones</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {summary?.transactionCount || 0}
               </p>
             </div>
@@ -124,8 +125,8 @@ export default function Dashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Pie Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Gastos por Categoría</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Gastos por Categoría</h2>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -147,15 +148,16 @@ export default function Dashboard() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-400">
-              No hay datos disponibles
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400 gap-2">
+              <PieChartIcon className="h-12 w-12 opacity-50" />
+              <p>No hay datos disponibles</p>
             </div>
           )}
         </div>
 
         {/* Bar Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Ingresos vs Gastos</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ingresos vs Gastos</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={[
@@ -174,14 +176,14 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Transacciones Recientes</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Transacciones Recientes</h2>
         {transactions && transactions.length > 0 ? (
           <div className="space-y-3">
             {transactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="flex items-center justify-between p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -196,8 +198,8 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{transaction.description}</p>
-                    <p className="text-sm text-gray-500">{transaction.category.name}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{transaction.description}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{transaction.category.name}</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -208,7 +210,7 @@ export default function Dashboard() {
                   >
                     {transaction.type === 'INCOME' ? '+' : '-'}${Number(transaction.amount).toFixed(2)}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     {new Date(transaction.date).toLocaleDateString('es-ES')}
                   </p>
                 </div>
@@ -216,8 +218,10 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-400">
-            No hay transacciones registradas
+          <div className="text-center py-8 text-gray-400 flex flex-col items-center gap-2">
+            <Receipt className="h-12 w-12 opacity-50" />
+            <p>No hay transacciones registradas</p>
+            <p className="text-sm">Agrega tu primera transacción para comenzar</p>
           </div>
         )}
       </div>
