@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import api from '../lib/api';
 
 interface Summary {
@@ -89,56 +89,56 @@ export default function Reports() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-        <p className="text-gray-500 mt-1">Análisis detallado de tus finanzas</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reportes</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Análisis detallado de tus finanzas</p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-green-100 rounded-lg">
               <TrendingUp className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Tasa de Ahorro</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Tasa de Ahorro</p>
               <p className="text-xl font-bold text-green-600">{savingsRate.toFixed(1)}%</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 rounded-lg">
               <DollarSign className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Promedio/Gasto</p>
-              <p className="text-xl font-bold text-gray-900">${avgTransaction.toFixed(2)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Promedio/Gasto</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">${avgTransaction.toFixed(2)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-purple-100 rounded-lg">
               <Calendar className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Meses Registrados</p>
-              <p className="text-xl font-bold text-gray-900">{chartData.length}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Meses Registrados</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{chartData.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-orange-100 rounded-lg">
               <TrendingDown className="h-6 w-6 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Mayor Gasto</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Mayor Gasto</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">
                 {categoryData.length > 0 ? categoryData[0].name : '-'}
               </p>
             </div>
@@ -147,8 +147,8 @@ export default function Reports() {
       </div>
 
       {/* Monthly Trend */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Tendencia Mensual</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tendencia Mensual</h2>
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData}>
@@ -163,16 +163,17 @@ export default function Reports() {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-[350px] text-gray-400">
-            No hay datos suficientes para mostrar la tendencia
+          <div className="flex flex-col items-center justify-center h-[350px] text-gray-400 gap-2">
+            <TrendingUp className="h-12 w-12 opacity-50" />
+            <p>No hay datos suficientes para mostrar la tendencia</p>
           </div>
         )}
       </div>
 
       {/* Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Categoría</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Distribución por Categoría</h2>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -194,14 +195,15 @@ export default function Reports() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-400">
-              No hay datos de categorías
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400 gap-2">
+              <PieChart className="h-12 w-12 opacity-50" />
+              <p>No hay datos de categorías</p>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Gastos por Categoría</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Gastos por Categoría</h2>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={categoryData} layout="vertical">
@@ -217,24 +219,25 @@ export default function Reports() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-400">
-              No hay datos de categorías
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400 gap-2">
+              <BarChart className="h-12 w-12 opacity-50" />
+              <p>No hay datos de categorías</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Category Details Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Detalle por Categoría</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Detalle por Categoría</h2>
         </div>
         {categoryData.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Categoría
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -245,28 +248,28 @@ export default function Reports() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                 {categoryData.map((category, index) => {
                   const percentage = summary?.totalExpenses
                     ? (category.value / summary.totalExpenses) * 100
                     : 0;
                   return (
-                    <tr key={category.name} className="hover:bg-gray-50">
+                    <tr key={category.name} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
-                          <span className="font-medium text-gray-900">{category.name}</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{category.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-gray-900 dark:text-white">
                         ${category.value.toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="w-24 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full"
                               style={{
@@ -275,7 +278,7 @@ export default function Reports() {
                               }}
                             />
                           </div>
-                          <span className="text-gray-600 w-12">{percentage.toFixed(1)}%</span>
+                          <span className="text-gray-600 dark:text-gray-400 w-12">{percentage.toFixed(1)}%</span>
                         </div>
                       </td>
                     </tr>
@@ -285,8 +288,9 @@ export default function Reports() {
             </table>
           </div>
         ) : (
-          <div className="text-center py-12 text-gray-400">
-            No hay datos de categorías disponibles
+          <div className="text-center py-12 text-gray-400 flex flex-col items-center gap-2">
+            <BarChart3 className="h-12 w-12 opacity-50" />
+            <p>No hay datos de categorías disponibles</p>
           </div>
         )}
       </div>
