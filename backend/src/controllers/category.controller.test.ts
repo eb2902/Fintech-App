@@ -222,4 +222,78 @@ describe('category.controller', () => {
       expect(res.status).toHaveBeenCalledWith(404);
     });
   });
+
+  describe('error handling', () => {
+    it('should return 500 when createCategory database throws an error', async () => {
+      (mockedPrisma.category.create as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        body: {
+          name: 'Food',
+          type: 'EXPENSE',
+          color: '#ff0000',
+          icon: 'food',
+        },
+      });
+      const res = createMockRes();
+
+      await categoryController.createCategory(req as unknown as Parameters<typeof categoryController.createCategory>[0], res as unknown as Parameters<typeof categoryController.createCategory>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when getCategories database throws an error', async () => {
+      (mockedPrisma.category.findMany as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({ query: {} });
+      const res = createMockRes();
+
+      await categoryController.getCategories(req as unknown as Parameters<typeof categoryController.getCategories>[0], res as unknown as Parameters<typeof categoryController.getCategories>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when getCategoryById database throws an error', async () => {
+      (mockedPrisma.category.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({ params: { id: '1' } });
+      const res = createMockRes();
+
+      await categoryController.getCategoryById(req as unknown as Parameters<typeof categoryController.getCategoryById>[0], res as unknown as Parameters<typeof categoryController.getCategoryById>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when updateCategory database throws an error', async () => {
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
+      (mockedPrisma.category.update as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        params: { id: '1' },
+        body: { name: 'Updated Food' },
+      });
+      const res = createMockRes();
+
+      await categoryController.updateCategory(req as unknown as Parameters<typeof categoryController.updateCategory>[0], res as unknown as Parameters<typeof categoryController.updateCategory>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when deleteCategory database throws an error', async () => {
+      (mockedPrisma.category.findUnique as MockFn).mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
+      (mockedPrisma.category.delete as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({ params: { id: '1' } });
+      const res = createMockRes();
+
+      await categoryController.deleteCategory(req as unknown as Parameters<typeof categoryController.deleteCategory>[0], res as unknown as Parameters<typeof categoryController.deleteCategory>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+  });
 });

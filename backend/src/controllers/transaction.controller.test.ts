@@ -299,5 +299,187 @@ describe('transaction.controller', () => {
         transactionCount: 3,
       });
     });
+
+    it('should return summary with zero values when no transactions exist', async () => {
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([]);
+
+      const req = createMockReq({
+        query: { month: '1', year: '2024' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getSummary(req as unknown as Parameters<typeof transactionController.getSummary>[0], res as unknown as Parameters<typeof transactionController.getSummary>[1]);
+
+      expect(res.json).toHaveBeenCalledWith({
+        totalIncome: 0,
+        totalExpenses: 0,
+        balance: 0,
+        byCategory: {},
+        transactionCount: 0,
+      });
+    });
+
+    it('should return summary for current month when no month/year provided', async () => {
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([]);
+
+      const req = createMockReq({
+        query: {},
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getSummary(req as unknown as Parameters<typeof transactionController.getSummary>[0], res as unknown as Parameters<typeof transactionController.getSummary>[1]);
+
+      expect(mockedPrisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+          }),
+        })
+      );
+    });
+  });
+
+  describe('error handling', () => {
+    it('should return 500 when createTransaction database throws an error', async () => {
+      const validCategoryId = '550e8400-e29b-41d4-a716-446655440000';
+      (mockedPrisma.transaction.create as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        body: {
+          amount: 100,
+          description: 'Test',
+          type: 'EXPENSE',
+          categoryId: validCategoryId,
+        },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.createTransaction(req as unknown as Parameters<typeof transactionController.createTransaction>[0], res as unknown as Parameters<typeof transactionController.createTransaction>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when getTransactions database throws an error', async () => {
+      (mockedPrisma.transaction.findMany as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        query: { page: '1', limit: '10' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getTransactions(req as unknown as Parameters<typeof transactionController.getTransactions>[0], res as unknown as Parameters<typeof transactionController.getTransactions>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when getTransactionById database throws an error', async () => {
+      (mockedPrisma.transaction.findFirst as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        params: { id: '1' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getTransactionById(req as unknown as Parameters<typeof transactionController.getTransactionById>[0], res as unknown as Parameters<typeof transactionController.getTransactionById>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when updateTransaction database throws an error', async () => {
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue({ id: '1', userId: 'user-1' } as TransactionData);
+      (mockedPrisma.transaction.update as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        params: { id: '1' },
+        body: { amount: 200 },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.updateTransaction(req as unknown as Parameters<typeof transactionController.updateTransaction>[0], res as unknown as Parameters<typeof transactionController.updateTransaction>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when deleteTransaction database throws an error', async () => {
+      (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue({ id: '1', userId: 'user-1' } as TransactionData);
+      (mockedPrisma.transaction.delete as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        params: { id: '1' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.deleteTransaction(req as unknown as Parameters<typeof transactionController.deleteTransaction>[0], res as unknown as Parameters<typeof transactionController.deleteTransaction>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when getSummary database throws an error', async () => {
+      (mockedPrisma.transaction.findMany as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        query: { month: '1', year: '2024' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getSummary(req as unknown as Parameters<typeof transactionController.getSummary>[0], res as unknown as Parameters<typeof transactionController.getSummary>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should handle pagination edge cases (page 2 skips first page)', async () => {
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([]);
+      (mockedPrisma.transaction.count as MockFn).mockResolvedValue(0);
+
+      const req = createMockReq({
+        query: { page: '2', limit: '10' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getTransactions(req as unknown as Parameters<typeof transactionController.getTransactions>[0], res as unknown as Parameters<typeof transactionController.getTransactions>[1]);
+
+      expect(mockedPrisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+          include: { category: true },
+          orderBy: { date: 'desc' },
+        })
+      );
+    });
+
+    it('should use default limit when not provided', async () => {
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([]);
+      (mockedPrisma.transaction.count as MockFn).mockResolvedValue(0);
+
+      const req = createMockReq({
+        query: {},
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getTransactions(req as unknown as Parameters<typeof transactionController.getTransactions>[0], res as unknown as Parameters<typeof transactionController.getTransactions>[1]);
+
+      expect(mockedPrisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 10,
+        })
+      );
+    });
   });
 });

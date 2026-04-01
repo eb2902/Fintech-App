@@ -276,4 +276,94 @@ describe('auth.controller', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
     });
   });
+
+  describe('error handling', () => {
+    it('should return 500 when register database throws an error', async () => {
+      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        body: {
+          name: 'Test User',
+          email: 'test@example.com',
+          password: 'password123',
+        },
+      });
+      const res = createMockRes();
+
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when login database throws an error', async () => {
+      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        body: {
+          email: 'test@example.com',
+          password: 'password123',
+        },
+      });
+      const res = createMockRes();
+
+      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 500 when getMe database throws an error', async () => {
+      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
+
+      const req = createMockReq({
+        userId: '1',
+      });
+      const res = createMockRes();
+
+      await authController.getMe(req as unknown as Parameters<typeof authController.getMe>[0], res as unknown as Parameters<typeof authController.getMe>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+    });
+
+    it('should return 400 with ZodError details for register validation failure', async () => {
+      const req = createMockReq({
+        body: {
+          name: '',
+          email: 'invalid-email-format',
+          password: '12',
+        },
+      });
+      const res = createMockRes();
+
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: expect.arrayContaining([
+          expect.objectContaining({ message: expect.any(String) }),
+        ]),
+      });
+    });
+
+    it('should return 400 with ZodError details for login validation failure', async () => {
+      const req = createMockReq({
+        body: {
+          email: 'not-an-email',
+          password: '',
+        },
+      });
+      const res = createMockRes();
+
+      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: expect.arrayContaining([
+          expect.objectContaining({ message: expect.any(String) }),
+        ]),
+      });
+    });
+  });
 });
