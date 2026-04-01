@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, DollarSign, PieChart as PieChartIcon, Receipt } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../lib/api';
 
@@ -27,6 +28,9 @@ interface Transaction {
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
 
 export default function Dashboard() {
+  const { isDark } = useTheme();
+  const chartTextColor = isDark ? '#d1d5db' : '#6b7280';
+  const chartGridColor = isDark ? '#374151' : '#e5e7eb';
   const { data: summary, isLoading: summaryLoading } = useQuery<Summary>({
     queryKey: ['summary'],
     queryFn: async () => {
@@ -165,10 +169,18 @@ export default function Dashboard() {
                 { name: 'Gastos', value: summary?.totalExpenses || 0, fill: '#ef4444' },
               ]}
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+              <XAxis dataKey="name" tick={{ fill: chartTextColor }} />
+              <YAxis tick={{ fill: chartTextColor }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isDark ? '#1f2937' : '#fff',
+                  border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                  borderRadius: '8px',
+                  color: isDark ? '#f9fafb' : '#111827',
+                }}
+                formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
+              />
               <Bar dataKey="value" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

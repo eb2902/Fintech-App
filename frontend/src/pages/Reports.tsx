@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Calendar, BarChart3 } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import api from '../lib/api';
 
 interface Summary {
@@ -27,6 +28,17 @@ interface Transaction {
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#06b6d4'];
 
 export default function Reports() {
+  const { isDark } = useTheme();
+  const chartTextColor = isDark ? '#d1d5db' : '#6b7280';
+  const chartGridColor = isDark ? '#374151' : '#e5e7eb';
+  const tooltipStyle = {
+    contentStyle: {
+      backgroundColor: isDark ? '#1f2937' : '#fff',
+      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+      borderRadius: '8px',
+      color: isDark ? '#f9fafb' : '#111827',
+    },
+  };
   const { data: summary } = useQuery<Summary>({
     queryKey: ['summary'],
     queryFn: async () => {
@@ -152,10 +164,10 @@ export default function Reports() {
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
+              <XAxis dataKey="month" tick={{ fill: chartTextColor }} />
+              <YAxis tick={{ fill: chartTextColor }} />
+              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} contentStyle={tooltipStyle.contentStyle} />
               <Legend />
               <Line type="monotone" dataKey="Ingresos" stroke="#22c55e" strokeWidth={2} />
               <Line type="monotone" dataKey="Gastos" stroke="#ef4444" strokeWidth={2} />
@@ -191,7 +203,7 @@ export default function Reports() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} contentStyle={tooltipStyle.contentStyle} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -207,10 +219,10 @@ export default function Reports() {
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={categoryData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" width={100} />
-                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={chartGridColor} />
+                <XAxis type="number" tick={{ fill: chartTextColor }} />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fill: chartTextColor }} />
+                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} contentStyle={tooltipStyle.contentStyle} />
                 <Bar dataKey="value" radius={[0, 8, 8, 0]}>
                   {categoryData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
