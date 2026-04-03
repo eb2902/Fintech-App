@@ -8,17 +8,19 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       thresholds: {
-        lines: 80,
-        functions: 75,
-        branches: 70,
-        statements: 80
+        lines: 95,
+        functions: 95,
+        branches: 95,
+        statements: 95
       },
       exclude: [
         'node_modules/',
         'dist/',
         'prisma/',
         'src/test/',
-        '**/*.d.ts'
+        '**/*.d.ts',
+        'src/index.ts',
+        'src/config/database.ts'
       ]
     },
     setupFiles: ['./src/test/setup.ts']

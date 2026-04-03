@@ -153,6 +153,31 @@ describe('transaction.controller', () => {
         })
       );
     });
+
+    it('should filter transactions by date range', async () => {
+      (mockedPrisma.transaction.findMany as MockFn).mockResolvedValue([]);
+      (mockedPrisma.transaction.count as MockFn).mockResolvedValue(0);
+
+      const req = createMockReq({
+        query: { startDate: '2024-01-01', endDate: '2024-12-31' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getTransactions(req as unknown as Parameters<typeof transactionController.getTransactions>[0], res as unknown as Parameters<typeof transactionController.getTransactions>[1]);
+
+      expect(mockedPrisma.transaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            date: expect.objectContaining({
+              gte: expect.any(Date),
+              lte: expect.any(Date),
+            }),
+          }),
+        })
+      );
+    });
   });
 
   describe('getTransactionById', () => {
@@ -238,6 +263,19 @@ describe('transaction.controller', () => {
       await transactionController.updateTransaction(req as unknown as Parameters<typeof transactionController.updateTransaction>[0], res as unknown as Parameters<typeof transactionController.updateTransaction>[1]);
 
       expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should return 400 for invalid update data', async () => {
+      const req = createMockReq({
+        params: { id: '1' },
+        body: { amount: -50 },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.updateTransaction(req as unknown as Parameters<typeof transactionController.updateTransaction>[0], res as unknown as Parameters<typeof transactionController.updateTransaction>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 

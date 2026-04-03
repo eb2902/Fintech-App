@@ -196,6 +196,18 @@ describe('category.controller', () => {
 
       expect(res.status).toHaveBeenCalledWith(404);
     });
+
+    it('should return 400 for invalid update data', async () => {
+      const req = createMockReq({
+        params: { id: '1' },
+        body: { name: '' },
+      });
+      const res = createMockRes();
+
+      await categoryController.updateCategory(req as unknown as Parameters<typeof categoryController.updateCategory>[0], res as unknown as Parameters<typeof categoryController.updateCategory>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
   });
 
   describe('deleteCategory', () => {
