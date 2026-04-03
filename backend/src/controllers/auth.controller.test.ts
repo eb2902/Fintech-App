@@ -278,6 +278,74 @@ describe('auth.controller', () => {
   });
 
   describe('error handling', () => {
+    it('should use default JWT_SECRET when not configured', async () => {
+      const originalSecret = process.env.JWT_SECRET;
+      delete process.env.JWT_SECRET;
+
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue(null);
+      (mockedPrisma.user.create as MockFn).mockResolvedValue({
+        id: '1',
+        name: 'Test User',
+        email: 'test@example.com',
+        createdAt: new Date(),
+      } as UserData);
+      (mockedBcrypt.hash as MockFn).mockResolvedValue('hashed-password');
+      (mockedJwt.sign as MockFn).mockReturnValue('mock-token');
+
+      const req = createMockReq({
+        body: {
+          name: 'Test User',
+          email: 'test@example.com',
+          password: 'password123',
+        },
+      });
+      const res = createMockRes();
+
+      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(mockedJwt.sign).toHaveBeenCalledWith(
+        expect.anything(),
+        'default-secret',
+        expect.anything()
+      );
+
+      process.env.JWT_SECRET = originalSecret;
+    });
+
+    it('should use default JWT_SECRET for login when not configured', async () => {
+      const originalSecret = process.env.JWT_SECRET;
+      delete process.env.JWT_SECRET;
+
+      (mockedPrisma.user.findUnique as MockFn).mockResolvedValue({
+        id: '1',
+        name: 'Test User',
+        email: 'test@example.com',
+        password: 'correct-hash',
+      } as UserData);
+      (mockedBcrypt.compare as MockFn).mockResolvedValue(true);
+      (mockedJwt.sign as MockFn).mockReturnValue('mock-token');
+
+      const req = createMockReq({
+        body: {
+          email: 'test@example.com',
+          password: 'correct-password',
+        },
+      });
+      const res = createMockRes();
+
+      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
+
+      expect(res.json).toHaveBeenCalled();
+      expect(mockedJwt.sign).toHaveBeenCalledWith(
+        expect.anything(),
+        'default-secret',
+        expect.anything()
+      );
+
+      process.env.JWT_SECRET = originalSecret;
+    });
+
     it('should return 500 when register database throws an error', async () => {
       (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
 

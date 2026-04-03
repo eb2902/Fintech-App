@@ -110,5 +110,26 @@ describe('auth.middleware', () => {
       expect((req as { userId?: string }).userId).toBe('user-123');
       expect(next).toHaveBeenCalled();
     });
+
+    it('should return 403 when JWT_SECRET is not configured', async () => {
+      const originalSecret = process.env.JWT_SECRET;
+      delete process.env.JWT_SECRET;
+
+      const req = createMockReq({
+        headers: {
+          authorization: 'Bearer some-token',
+        },
+      });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      authMiddleware.authenticateToken(req as unknown as Parameters<typeof authMiddleware.authenticateToken>[0], res as unknown as Parameters<typeof authMiddleware.authenticateToken>[1], next as unknown as NextFunction);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+      expect(next).not.toHaveBeenCalled();
+
+      process.env.JWT_SECRET = originalSecret;
+    });
   });
 });
