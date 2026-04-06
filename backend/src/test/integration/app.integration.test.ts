@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
 
@@ -36,6 +36,9 @@ describe('🌐 App Configuration Integration Tests', () => {
 
   describe('Body Parsing Middleware', () => {
     it('debe parsear JSON bodies correctamente', async () => {
+      // Silenciar log de error esperado de credenciales inválidas
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
       const response = await request(app)
         .post('/api/auth/login')
         .send({ email: 'test@test.com', password: 'password123' })
@@ -44,9 +47,14 @@ describe('🌐 App Configuration Integration Tests', () => {
       // No debe fallar por parseo de JSON (401 es por credenciales, no por parseo)
       // Si el body no se parseara, obtendríamos un error 500 o de sintaxis
       expect([200, 400, 401, 500]).toContain(response.status);
+      
+      consoleSpy.mockRestore();
     });
 
     it('debe parsear URL-encoded bodies correctamente', async () => {
+      // Silenciar log de error esperado de credenciales inválidas
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
       const response = await request(app)
         .post('/api/auth/login')
         .send('email=test@test.com&password=password123')
@@ -54,6 +62,8 @@ describe('🌐 App Configuration Integration Tests', () => {
 
       // No debe fallar por parseo
       expect([200, 400, 401, 500]).toContain(response.status);
+      
+      consoleSpy.mockRestore();
     });
   });
 
@@ -85,12 +95,17 @@ describe('🌐 App Configuration Integration Tests', () => {
     });
 
     it('debe rechazar origenes no permitidos', async () => {
+      // Silenciar log de error esperado de CORS
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
       const response = await request(app)
         .get('/api/health')
         .set('Origin', 'http://malicious-site.com');
 
       // CORS debe rechazar origenes no permitidos
       expect(response.status).toBe(500);
+      
+      consoleSpy.mockRestore();
     });
   });
 
@@ -141,6 +156,9 @@ describe('🌐 App Configuration Integration Tests', () => {
 
   describe('Error Handling Middleware', () => {
     it('debe manejar errores internos con formato JSON', async () => {
+      // Silenciar log de error esperado de validación Zod
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
       // Hacemos una request a una ruta que podría causar un error
       // El middleware de errores debe retornar JSON
       const response = await request(app)
@@ -151,6 +169,8 @@ describe('🌐 App Configuration Integration Tests', () => {
       if (response.status >= 500) {
         expect(response.body).toHaveProperty('error');
       }
+      
+      consoleSpy.mockRestore();
     });
   });
 });

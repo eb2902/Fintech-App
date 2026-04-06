@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { MockRequest, UserData } from '../test/types';
+import type { Request, Response } from 'express';
+import { z } from 'zod';
+import { ConflictError, UnauthorizedError, NotFoundError } from '../errors/AppError';
 
 // Mock dependencies BEFORE importing the controller
 vi.mock('../config/database', () => ({
@@ -42,7 +45,7 @@ const mockedJwt = vi.mocked(jwt, true);
 // Save original env
 const originalEnv = process.env;
 
-const createMockReq = (overrides: Partial<MockRequest> = {}): unknown => ({
+const createMockReq = (overrides: Partial<MockRequest> = {}): Partial<Request> => ({
   body: {},
   params: {},
   query: {},
@@ -50,7 +53,7 @@ const createMockReq = (overrides: Partial<MockRequest> = {}): unknown => ({
   ...overrides,
 });
 
-const createMockRes = (): Record<string, MockFn> => {
+const createMockRes = (): Partial<Response> => {
   const mock = {
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
@@ -70,7 +73,7 @@ describe('auth.controller', () => {
   });
 
   describe('register', () => {
-    it('should return 400 if user already exists', async () => {
+    it('should throw ConflictError if user already exists', async () => {
       (mockedPrisma.user.findUnique as MockFn).mockResolvedValue({ id: '1', email: 'test@example.com' } as UserData);
 
       const req = createMockReq({
@@ -82,10 +85,13 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
+      await expect(
+        authController.register(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(ConflictError);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: 'User already exists' });
+      await expect(
+        authController.register(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow('Usuario ya registrado');
     });
 
     it('should create user and return token on successful registration', async () => {
@@ -108,7 +114,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
+      await authController.register(req as unknown as Request, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
@@ -121,7 +127,7 @@ describe('auth.controller', () => {
       });
     });
 
-    it('should return 400 for invalid input (short name)', async () => {
+    it('should throw ZodError for invalid input (short name)', async () => {
       const req = createMockReq({
         body: {
           name: 'T',
@@ -131,12 +137,12 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(400);
+      await expect(
+        authController.register(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(z.ZodError);
     });
 
-    it('should return 400 for invalid email', async () => {
+    it('should throw ZodError for invalid email', async () => {
       const req = createMockReq({
         body: {
           name: 'Test User',
@@ -146,12 +152,12 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(400);
+      await expect(
+        authController.register(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(z.ZodError);
     });
 
-    it('should return 400 for short password', async () => {
+    it('should throw ZodError for short password', async () => {
       const req = createMockReq({
         body: {
           name: 'Test User',
@@ -161,14 +167,14 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(400);
+      await expect(
+        authController.register(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(z.ZodError);
     });
   });
 
   describe('login', () => {
-    it('should return 401 for non-existent user', async () => {
+    it('should throw UnauthorizedError for non-existent user', async () => {
       (mockedPrisma.user.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
@@ -179,13 +185,16 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid credentials' });
+      await expect(
+        authController.login(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(UnauthorizedError);
+      
+      await expect(
+        authController.login(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow('Credenciales inválidas');
     });
 
-    it('should return 401 for wrong password', async () => {
+    it('should throw UnauthorizedError for wrong password', async () => {
       (mockedPrisma.user.findUnique as MockFn).mockResolvedValue({
         id: '1',
         email: 'test@example.com',
@@ -201,10 +210,13 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid credentials' });
+      await expect(
+        authController.login(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(UnauthorizedError);
+      
+      await expect(
+        authController.login(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow('Credenciales inválidas');
     });
 
     it('should return user and token on successful login', async () => {
@@ -225,7 +237,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
+      await authController.login(req as unknown as Request, res as unknown as Response);
 
       expect(res.json).toHaveBeenCalledWith({
         token: 'mock-token',
@@ -252,7 +264,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.getMe(req as unknown as Parameters<typeof authController.getMe>[0], res as unknown as Parameters<typeof authController.getMe>[1]);
+      await authController.getMe(req as unknown as Request, res as unknown as Response);
 
       expect(res.json).toHaveBeenCalledWith({
         id: '1',
@@ -262,7 +274,7 @@ describe('auth.controller', () => {
       });
     });
 
-    it('should return 404 if user not found', async () => {
+    it('should throw NotFoundError if user not found', async () => {
       (mockedPrisma.user.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
@@ -270,10 +282,13 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.getMe(req as unknown as Parameters<typeof authController.getMe>[0], res as unknown as Parameters<typeof authController.getMe>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'User not found' });
+      await expect(
+        authController.getMe(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(NotFoundError);
+      
+      await expect(
+        authController.getMe(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow('Usuario no encontrado');
     });
   });
 
@@ -301,7 +316,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
+      await authController.register(req as unknown as Request, res as unknown as Response);
 
       expect(res.status).toHaveBeenCalledWith(201);
       expect(mockedJwt.sign).toHaveBeenCalledWith(
@@ -334,7 +349,7 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
+      await authController.login(req as unknown as Request, res as unknown as Response);
 
       expect(res.json).toHaveBeenCalled();
       expect(mockedJwt.sign).toHaveBeenCalledWith(
@@ -346,8 +361,9 @@ describe('auth.controller', () => {
       process.env.JWT_SECRET = originalSecret;
     });
 
-    it('should return 500 when register database throws an error', async () => {
-      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
+    it('should propagate database errors when register fails', async () => {
+      const testError = new Error('Database connection error');
+      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(testError);
 
       const req = createMockReq({
         body: {
@@ -358,14 +374,14 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+      await expect(
+        authController.register(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(testError);
     });
 
-    it('should return 500 when login database throws an error', async () => {
-      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
+    it('should propagate database errors when login fails', async () => {
+      const testError = new Error('Database connection error');
+      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(testError);
 
       const req = createMockReq({
         body: {
@@ -375,27 +391,26 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+      await expect(
+        authController.login(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(testError);
     });
 
-    it('should return 500 when getMe database throws an error', async () => {
-      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
+    it('should propagate database errors when getMe fails', async () => {
+      const testError = new Error('Database connection error');
+      (mockedPrisma.user.findUnique as MockFn).mockRejectedValue(testError);
 
       const req = createMockReq({
         userId: '1',
       });
       const res = createMockRes();
 
-      await authController.getMe(req as unknown as Parameters<typeof authController.getMe>[0], res as unknown as Parameters<typeof authController.getMe>[1]);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+      await expect(
+        authController.getMe(req as unknown as Request, res as unknown as Response)
+      ).rejects.toThrow(testError);
     });
 
-    it('should return 400 with ZodError details for register validation failure', async () => {
+    it('should throw ZodError with validation errors for register', async () => {
       const req = createMockReq({
         body: {
           name: '',
@@ -405,17 +420,17 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.register(req as unknown as Parameters<typeof authController.register>[0], res as unknown as Parameters<typeof authController.register>[1]);
+      const error = await authController.register(req as unknown as Request, res as unknown as Response)
+        .catch(e => e);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        error: expect.arrayContaining([
-          expect.objectContaining({ message: expect.any(String) }),
-        ]),
-      });
+      expect(error).toBeInstanceOf(z.ZodError);
+      expect(error.errors).toHaveLength(3);
+      expect(error.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({ message: expect.any(String) }),
+      ]));
     });
 
-    it('should return 400 with ZodError details for login validation failure', async () => {
+    it('should throw ZodError with validation errors for login', async () => {
       const req = createMockReq({
         body: {
           email: 'not-an-email',
@@ -424,14 +439,14 @@ describe('auth.controller', () => {
       });
       const res = createMockRes();
 
-      await authController.login(req as unknown as Parameters<typeof authController.login>[0], res as unknown as Parameters<typeof authController.login>[1]);
+      const error = await authController.login(req as unknown as Request, res as unknown as Response)
+        .catch(e => e);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        error: expect.arrayContaining([
-          expect.objectContaining({ message: expect.any(String) }),
-        ]),
-      });
+      expect(error).toBeInstanceOf(z.ZodError);
+      expect(error.errors).toHaveLength(2);
+      expect(error.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({ message: expect.any(String) }),
+      ]));
     });
   });
 });
