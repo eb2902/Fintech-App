@@ -100,14 +100,16 @@ export const asyncHandler = (fn: (req: Request, res: Response, next?: NextFuncti
   return (req: Request, res: Response, next?: NextFunction) => {
     const promise = fn(req, res, next);
     
-    // Solo capturar errores si hay next middleware disponible (entorno real de Express)
-    if (next) {
-      promise.catch((error) => {
+    // Capturar errores siempre:
+    // - Si existe next: pasar al middleware de errores de Express
+    // - Si no existe next (entorno de tests): propagar el error para que lo capture Vitest
+    promise.catch((error) => {
+      if (next) {
         next(error);
-      });
-    }
+      }
+    });
     
-    // Siempre devolver la promesa original para que en los tests se pueda capturar correctamente
+    // Devolver la promesa para compatibilidad con tests
     return promise;
   };
 };
