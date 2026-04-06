@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit2, Trash2, X, Loader2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { Plus, Edit2, Trash2, X, Loader2, Search, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -36,7 +36,6 @@ const transactionSchema = z.object({
   date: z.string().min(1, 'La fecha es requerida'),
 });
 
-const ITEMS_PER_PAGE = 10;
 
 // Skeleton loaders para transacciones
 const TransactionSkeletons = () => (
@@ -76,15 +75,28 @@ export default function Transactions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [filterCategoryId, setFilterCategoryId] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: transactionsData, isLoading } = useQuery<{ transactions: Transaction[] }>({
-    queryKey: ['transactions'],
-    queryFn: async () => {
-      const response = await api.get('/transactions?limit=500');
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ['transactions', filterType, filterCategoryId],
+    queryFn: async ({ pageParam = 1 }) => {
+      const params = new URLSearchParams();
+      params.set('page', pageParam.toString());
+      params.set('limit', '20');
+      
+      if (filterType !== 'ALL') params.set('type', filterType);
+      if (filterCategoryId) params.set('categoryId', filterCategoryId);
+      
+      const response = await api.get(`/transactions?${params.toString()}`);
       return response.data;
     },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
   });
 
   const { data: categories } = useQuery<Category[]>({
@@ -210,28 +222,44 @@ export default function Transactions() {
 
   const filteredCategories = categories?.filter((c) => c.type === formData.type) || [];
 
-  // Filtrar transacciones
+  // Obtener todas las transacciones de todas las páginas cargadas
+  const allTransactions = useMemo(() => {
+    return data?.pages.flatMap(page => page.transactions) || [];
+  }, [data]);
+
+  // Filtrar transacciones (búsqueda local)
   const filteredTransactions = useMemo(() => {
-    const transactions = transactionsData?.transactions || [];
-    return transactions.filter((t) => {
+    return allTransactions.filter((t) => {
       const matchesSearch =
         searchTerm === '' ||
         t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.category.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = filterType === 'ALL' || t.type === filterType;
-      const matchesCategory = filterCategoryId === '' || t.category.id === filterCategoryId;
-      return matchesSearch && matchesType && matchesCategory;
+      return matchesSearch;
     });
-  }, [transactionsData, searchTerm, filterType, filterCategoryId]);
+  }, [allTransactions, searchTerm]);
 
-  // Paginación
-  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
-  const paginatedTransactions = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredTransactions.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredTransactions, currentPage]);
+  // Intersection Observer para Infinite Scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-  // Nota: la página se resetea a 1 directamente en los onChange de los filtros
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Total de registros
+  const totalTransactions = data?.pages[0]?.pagination?.total || 0;
 
   return (
     <motion.div
@@ -272,7 +300,6 @@ export default function Transactions() {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(1);
               }}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
               aria-label="Buscar transacciones"
@@ -298,10 +325,9 @@ export default function Transactions() {
               </label>
               <select
                 value={filterType}
-                onChange={(e) => {
-                  setFilterType(e.target.value as 'ALL' | 'INCOME' | 'EXPENSE');
-                  setCurrentPage(1);
-                }}
+              onChange={(e) => {
+                setFilterType(e.target.value as 'ALL' | 'INCOME' | 'EXPENSE');
+              }}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 aria-label="Filtrar por tipo"
               >
@@ -316,10 +342,9 @@ export default function Transactions() {
               </label>
               <select
                 value={filterCategoryId}
-                onChange={(e) => {
-                  setFilterCategoryId(e.target.value);
-                  setCurrentPage(1);
-                }}
+              onChange={(e) => {
+                setFilterCategoryId(e.target.value);
+              }}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 aria-label="Filtrar por categoría"
               >
@@ -346,10 +371,10 @@ export default function Transactions() {
           <div className="p-6">
             <TransactionSkeletons />
           </div>
-        ) : paginatedTransactions.length > 0 ? (
+        ) : filteredTransactions.length > 0 ? (
           <>
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
-              {paginatedTransactions.map((transaction) => (
+              {filteredTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
                   className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors gap-3"
@@ -413,32 +438,20 @@ export default function Transactions() {
               ))}
             </div>
 
-            {/* Paginación */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Página {currentPage} de {totalPages}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Página anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Página siguiente"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+            {/* Infinite Scroll Trigger & Loaders */}
+            <div ref={loadMoreRef} className="px-4 py-6 text-center">
+              {isFetchingNextPage && (
+                <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Cargando más transacciones...</span>
                 </div>
-              </div>
-            )}
+              )}
+              {!hasNextPage && !isFetchingNextPage && allTransactions.length > 0 && (
+                <p className="text-sm text-gray-400 dark:text-gray-500">
+                  ✓ Has llegado al final. Total: {totalTransactions} transacciones
+                </p>
+              )}
+            </div>
           </>
         ) : (
           <div className="text-center py-16 text-gray-400 dark:text-gray-500">
