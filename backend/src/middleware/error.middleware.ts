@@ -100,14 +100,16 @@ export const asyncHandler = (fn: (req: Request, res: Response, next?: NextFuncti
   return (req: Request, res: Response, next?: NextFunction) => {
     const promise = fn(req, res, next);
     
-    if (next) {
-      // En Express: propagar errores al middleware global
-      promise.catch(next);
-      return promise;
-    } else {
-      // En tests unitarios: devolver la promesa original para que pueda ser capturada con .rejects
-      return promise;
-    }
+    // Siempre capturar errores, incluso en tests unitarios
+    promise.catch((error) => {
+      if (next) {
+        // En Express: propagar errores al middleware global
+        next(error);
+      }
+      // Si no hay next (tests unitarios), la promesa queda como rechazada para poder ser capturada con .rejects
+    });
+    
+    return promise;
   };
 };
 
