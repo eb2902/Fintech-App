@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../config/database';
 
+const idParamSchema = z.object({
+  id: z.string().uuid('ID must be a valid UUID')
+});
+
 const createCategorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: z.enum(['INCOME', 'EXPENSE']),
@@ -54,7 +58,7 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
 
 export const getCategoryById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
 
     const category = await prisma.category.findUnique({
       where: { id },
@@ -66,14 +70,18 @@ export const getCategoryById = async (req: Request, res: Response): Promise<void
     }
 
     res.json(category);
-  } catch {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: error.errors });
+      return;
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
     const data = updateCategorySchema.parse(req.body);
 
     const existingCategory = await prisma.category.findUnique({
@@ -102,7 +110,7 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
 
 export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = idParamSchema.parse(req.params);
 
     const existingCategory = await prisma.category.findUnique({
       where: { id },
@@ -118,7 +126,11 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
     });
 
     res.status(204).send();
-  } catch {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: error.errors });
+      return;
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };

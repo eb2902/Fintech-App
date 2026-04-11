@@ -19,6 +19,7 @@
     "lint:fix": "npm run lint:fix --workspaces --if-present"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
     "concurrently": "^8.2.2"
   }
 }

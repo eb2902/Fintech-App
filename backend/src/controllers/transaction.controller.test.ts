@@ -191,7 +191,7 @@ describe('transaction.controller', () => {
       } as TransactionData);
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         userId: 'user-1',
       });
       const res = createMockRes();
@@ -206,11 +206,23 @@ describe('transaction.controller', () => {
       );
     });
 
-    it('should return 404 if transaction not found', async () => {
+    it('should return 400 for INVALID ID format', async () => {
+      const req = createMockReq({
+        params: { id: 'nonexistent' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.getTransactionById(req as unknown as Parameters<typeof transactionController.getTransactionById>[0], res as unknown as Parameters<typeof transactionController.getTransactionById>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 404 if transaction not found with VALID ID', async () => {
       (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
-        params: { id: 'nonexistent' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440099' },
         userId: 'user-1',
       });
       const res = createMockRes();
@@ -234,7 +246,7 @@ describe('transaction.controller', () => {
       } as TransactionData);
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         body: { amount: 200, description: 'Updated' },
         userId: 'user-1',
       });
@@ -250,11 +262,24 @@ describe('transaction.controller', () => {
       );
     });
 
-    it('should return 404 if transaction not found', async () => {
+    it('should return 400 for INVALID ID format on update', async () => {
+      const req = createMockReq({
+        params: { id: 'nonexistent' },
+        body: { amount: 100 },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.updateTransaction(req as unknown as Parameters<typeof transactionController.updateTransaction>[0], res as unknown as Parameters<typeof transactionController.updateTransaction>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 404 if transaction not found with VALID ID on update', async () => {
       (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
-        params: { id: 'nonexistent' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440099' },
         body: { amount: 100 },
         userId: 'user-1',
       });
@@ -285,7 +310,7 @@ describe('transaction.controller', () => {
       (mockedPrisma.transaction.delete as MockFn).mockResolvedValue({} as TransactionData);
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         userId: 'user-1',
       });
       const res = createMockRes();
@@ -295,11 +320,23 @@ describe('transaction.controller', () => {
       expect(res.status).toHaveBeenCalledWith(204);
     });
 
-    it('should return 404 if transaction not found', async () => {
+    it('should return 400 for INVALID ID format on delete', async () => {
+      const req = createMockReq({
+        params: { id: 'nonexistent' },
+        userId: 'user-1',
+      });
+      const res = createMockRes();
+
+      await transactionController.deleteTransaction(req as unknown as Parameters<typeof transactionController.deleteTransaction>[0], res as unknown as Parameters<typeof transactionController.deleteTransaction>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 404 if transaction not found with VALID ID on delete', async () => {
       (mockedPrisma.transaction.findFirst as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
-        params: { id: 'nonexistent' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440099' },
         userId: 'user-1',
       });
       const res = createMockRes();
@@ -420,7 +457,7 @@ describe('transaction.controller', () => {
       (mockedPrisma.transaction.findFirst as MockFn).mockRejectedValue(new Error('Database connection error'));
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         userId: 'user-1',
       });
       const res = createMockRes();
@@ -436,7 +473,7 @@ describe('transaction.controller', () => {
       (mockedPrisma.transaction.update as MockFn).mockRejectedValue(new Error('Database connection error'));
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         body: { amount: 200 },
         userId: 'user-1',
       });
@@ -453,7 +490,7 @@ describe('transaction.controller', () => {
       (mockedPrisma.transaction.delete as MockFn).mockRejectedValue(new Error('Database connection error'));
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         userId: 'user-1',
       });
       const res = createMockRes();

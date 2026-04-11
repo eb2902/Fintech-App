@@ -10,6 +10,34 @@ import transactionRoutes from '../../routes/transaction.routes';
 import { authenticateToken } from '../../middleware/auth.middleware';
 import prisma from '../../config/database';
 
+// Mock completo del módulo Prisma Client
+vi.mock('../../config/database', () => ({
+  default: {
+    user: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findMany: vi.fn()
+    },
+    category: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findMany: vi.fn()
+    },
+    transaction: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findMany: vi.fn(),
+      aggregate: vi.fn()
+    }
+  }
+}));
+
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
