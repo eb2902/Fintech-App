@@ -133,7 +133,7 @@ describe('category.controller', () => {
         type: 'EXPENSE',
       } as CategoryData);
 
-      const req = createMockReq({ params: { id: '1' } });
+      const req = createMockReq({ params: { id: '550e8400-e29b-41d4-a716-446655440000' } });
       const res = createMockRes();
 
       await categoryController.getCategoryById(req as unknown as Parameters<typeof categoryController.getCategoryById>[0], res as unknown as Parameters<typeof categoryController.getCategoryById>[1]);
@@ -146,10 +146,19 @@ describe('category.controller', () => {
       );
     });
 
-    it('should return 404 if category not found', async () => {
+    it('should return 400 for INVALID ID format', async () => {
+      const req = createMockReq({ params: { id: 'nonexistent' } });
+      const res = createMockRes();
+
+      await categoryController.getCategoryById(req as unknown as Parameters<typeof categoryController.getCategoryById>[0], res as unknown as Parameters<typeof categoryController.getCategoryById>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 404 if category not found with VALID ID', async () => {
       (mockedPrisma.category.findUnique as MockFn).mockResolvedValue(null);
 
-      const req = createMockReq({ params: { id: 'nonexistent' } });
+      const req = createMockReq({ params: { id: '550e8400-e29b-41d4-a716-446655440099' } });
       const res = createMockRes();
 
       await categoryController.getCategoryById(req as unknown as Parameters<typeof categoryController.getCategoryById>[0], res as unknown as Parameters<typeof categoryController.getCategoryById>[1]);
@@ -169,7 +178,7 @@ describe('category.controller', () => {
       } as CategoryData);
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         body: { name: 'Updated Food' },
       });
       const res = createMockRes();
@@ -183,11 +192,23 @@ describe('category.controller', () => {
       );
     });
 
-    it('should return 404 if category not found', async () => {
+    it('should return 400 for INVALID ID format on update', async () => {
+      const req = createMockReq({
+        params: { id: 'nonexistent' },
+        body: { name: 'Updated' },
+      });
+      const res = createMockRes();
+
+      await categoryController.updateCategory(req as unknown as Parameters<typeof categoryController.updateCategory>[0], res as unknown as Parameters<typeof categoryController.updateCategory>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 404 if category not found with VALID ID on update', async () => {
       (mockedPrisma.category.findUnique as MockFn).mockResolvedValue(null);
 
       const req = createMockReq({
-        params: { id: 'nonexistent' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440099' },
         body: { name: 'Updated' },
       });
       const res = createMockRes();
@@ -199,7 +220,7 @@ describe('category.controller', () => {
 
     it('should return 400 for invalid update data', async () => {
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         body: { name: '' },
       });
       const res = createMockRes();
@@ -215,7 +236,7 @@ describe('category.controller', () => {
       (mockedPrisma.category.findUnique as MockFn).mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
       (mockedPrisma.category.delete as MockFn).mockResolvedValue({} as CategoryData);
 
-      const req = createMockReq({ params: { id: '1' } });
+      const req = createMockReq({ params: { id: '550e8400-e29b-41d4-a716-446655440000' } });
       const res = createMockRes();
 
       await categoryController.deleteCategory(req as unknown as Parameters<typeof categoryController.deleteCategory>[0], res as unknown as Parameters<typeof categoryController.deleteCategory>[1]);
@@ -223,10 +244,19 @@ describe('category.controller', () => {
       expect(res.status).toHaveBeenCalledWith(204);
     });
 
-    it('should return 404 if category not found', async () => {
+    it('should return 400 for INVALID ID format on delete', async () => {
+      const req = createMockReq({ params: { id: 'nonexistent' } });
+      const res = createMockRes();
+
+      await categoryController.deleteCategory(req as unknown as Parameters<typeof categoryController.deleteCategory>[0], res as unknown as Parameters<typeof categoryController.deleteCategory>[1]);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 404 if category not found with VALID ID on delete', async () => {
       (mockedPrisma.category.findUnique as MockFn).mockResolvedValue(null);
 
-      const req = createMockReq({ params: { id: 'nonexistent' } });
+      const req = createMockReq({ params: { id: '550e8400-e29b-41d4-a716-446655440099' } });
       const res = createMockRes();
 
       await categoryController.deleteCategory(req as unknown as Parameters<typeof categoryController.deleteCategory>[0], res as unknown as Parameters<typeof categoryController.deleteCategory>[1]);
@@ -270,7 +300,7 @@ describe('category.controller', () => {
     it('should return 500 when getCategoryById database throws an error', async () => {
       (mockedPrisma.category.findUnique as MockFn).mockRejectedValue(new Error('Database connection error'));
 
-      const req = createMockReq({ params: { id: '1' } });
+      const req = createMockReq({ params: { id: '550e8400-e29b-41d4-a716-446655440000' } });
       const res = createMockRes();
 
       await categoryController.getCategoryById(req as unknown as Parameters<typeof categoryController.getCategoryById>[0], res as unknown as Parameters<typeof categoryController.getCategoryById>[1]);
@@ -284,7 +314,7 @@ describe('category.controller', () => {
       (mockedPrisma.category.update as MockFn).mockRejectedValue(new Error('Database connection error'));
 
       const req = createMockReq({
-        params: { id: '1' },
+        params: { id: '550e8400-e29b-41d4-a716-446655440000' },
         body: { name: 'Updated Food' },
       });
       const res = createMockRes();
@@ -299,7 +329,7 @@ describe('category.controller', () => {
       (mockedPrisma.category.findUnique as MockFn).mockResolvedValue({ id: '1', name: 'Food' } as CategoryData);
       (mockedPrisma.category.delete as MockFn).mockRejectedValue(new Error('Database connection error'));
 
-      const req = createMockReq({ params: { id: '1' } });
+      const req = createMockReq({ params: { id: '550e8400-e29b-41d4-a716-446655440000' } });
       const res = createMockRes();
 
       await categoryController.deleteCategory(req as unknown as Parameters<typeof categoryController.deleteCategory>[0], res as unknown as Parameters<typeof categoryController.deleteCategory>[1]);

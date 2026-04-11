@@ -110,8 +110,11 @@ export default function Transactions() {
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       await api.post('/transactions', {
-        ...data,
         amount: parseFloat(data.amount),
+        description: data.description,
+        type: data.type,
+        categoryId: data.categoryId,
+        date: data.date,
       });
     },
     onSuccess: () => {
@@ -129,8 +132,11 @@ export default function Transactions() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       await api.put(`/transactions/${id}`, {
-        ...data,
         amount: parseFloat(data.amount),
+        description: data.description,
+        type: data.type,
+        categoryId: data.categoryId,
+        date: data.date,
       });
     },
     onSuccess: () => {

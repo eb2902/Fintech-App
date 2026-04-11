@@ -3,19 +3,28 @@ import { z } from 'zod';
 import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-const createTransactionSchema = z.object({
-  amount: z.number().positive('Amount must be positive'),
-  description: z.string().min(1, 'Description is required'),
-  type: z.enum(['INCOME', 'EXPENSE']),
-  categoryId: z.string().uuid('Invalid category ID'),
-  date: z.string().datetime().optional(),
+const transactionIdParamSchema = z.object({
+  id: z.string().uuid('ID must be a valid UUID')
+});
+
+const dateFilterSchema = z.object({
+  startDate: z.union([z.string().datetime({ precision: 3, offset: true }), z.string().date()]).optional(),
+  endDate: z.union([z.string().datetime({ precision: 3, offset: true }), z.string().date()]).optional()
 });
 
 const updateTransactionSchema = z.object({
   amount: z.number().positive('Amount must be positive').optional(),
   description: z.string().min(1, 'Description is required').optional(),
-  categoryId: z.string().uuid('Invalid category ID').optional(),
-  date: z.string().datetime().optional(),
+  categoryId: z.string().uuid('Category ID must be a valid UUID').optional(),
+  date: z.union([z.string().datetime({ precision: 3, offset: true }), z.string().date()]).optional(),
+});
+
+const createTransactionSchema = z.object({
+  amount: z.number().positive('Amount must be positive'),
+  description: z.string().min(1, 'Description is required'),
+  type: z.enum(['INCOME', 'EXPENSE']),
+  categoryId: z.string().uuid('Category ID must be a valid UUID'),
+  date: z.union([z.string().datetime({ precision: 3, offset: true }), z.string().date()]).optional(),
 });
 
 interface TransactionWhere {
@@ -60,7 +69,8 @@ export const createTransaction = async (req: AuthRequest, res: Response): Promis
 export const getTransactions = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId!;
-    const { type, categoryId, startDate, endDate, page = '1', limit = '10' } = req.query;
+    const { type, categoryId, page = '1', limit = '10' } = req.query;
+    const { startDate, endDate } = dateFilterSchema.parse(req.query);
 
     const where: TransactionWhere = { userId };
 
@@ -110,7 +120,7 @@ export const getTransactions = async (req: AuthRequest, res: Response): Promise<
 export const getTransactionById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId!;
-    const { id } = req.params;
+    const { id } = transactionIdParamSchema.parse(req.params);
 
     const transaction = await prisma.transaction.findFirst({
       where: { id, userId },
@@ -123,7 +133,11 @@ export const getTransactionById = async (req: AuthRequest, res: Response): Promi
     }
 
     res.json(transaction);
-  } catch {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: error.errors });
+      return;
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -131,7 +145,7 @@ export const getTransactionById = async (req: AuthRequest, res: Response): Promi
 export const updateTransaction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId!;
-    const { id } = req.params;
+    const { id } = transactionIdParamSchema.parse(req.params);
     const data = updateTransactionSchema.parse(req.body);
 
     const existingTransaction = await prisma.transaction.findFirst({
@@ -145,7 +159,10 @@ export const updateTransaction = async (req: AuthRequest, res: Response): Promis
 
     const transaction = await prisma.transaction.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        date: data.date ? new Date(data.date) : undefined
+      },
       include: { category: true },
     });
 
@@ -162,7 +179,7 @@ export const updateTransaction = async (req: AuthRequest, res: Response): Promis
 export const deleteTransaction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId!;
-    const { id } = req.params;
+    const { id } = transactionIdParamSchema.parse(req.params);
 
     const existingTransaction = await prisma.transaction.findFirst({
       where: { id, userId },
@@ -178,7 +195,11 @@ export const deleteTransaction = async (req: AuthRequest, res: Response): Promis
     });
 
     res.status(204).send();
-  } catch {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: error.errors });
+      return;
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };
