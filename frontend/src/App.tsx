@@ -116,6 +116,8 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  // Descomentar la siguiente línea para probar el ErrorBoundary
+  // throw new Error('Test error for ErrorBoundary');
   return <AnimatedRoutes />;
 }
 
